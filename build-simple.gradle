@@ -1,0 +1,38 @@
+// Simple build file for syntax checking only
+plugins {
+    id 'java'
+}
+
+version = '0.2.0-alpha'
+group = 'com.Ingenium'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Only JUnit for testing
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
+}
+
+sourceSets {
+    main {
+        java {
+            srcDirs = ['src/main/java']
+        }
+    }
+    test {
+        java {
+            srcDirs = ['src/test/java']
+        }
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    sourceCompatibility = '17'
+    targetCompatibility = '17'
+}
+
+test {
+    useJUnitPlatform()
+}

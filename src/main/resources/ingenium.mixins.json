@@ -1,0 +1,22 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.ingenium.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "mixins": [
+    "server.MixinMinecraftServer",
+    "server.MixinVillagerEntity",
+    "server.MixinEntityNavigation",
+    "server.MixinGoalSelector",
+    "world.MixinServerWorld",
+    "compat.ItemAttributeCompatMixin"
+  ],
+  "client": [
+    "client.MixinBlockEntityRenderDispatcher",
+    "client.FrustumAccessor"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "plugin": "com.ingenium.mixin.IngeniumMixinPlugin"
+}

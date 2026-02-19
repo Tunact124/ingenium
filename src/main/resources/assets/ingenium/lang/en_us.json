@@ -1,0 +1,7 @@
+{
+  "key.categories.ingenium":                  "Ingenium",
+  "key.ingenium.toggle_governor":             "Toggle Governor",
+  "key.ingenium.toggle_instanced_render":     "Toggle Instanced Rendering",
+  "key.ingenium.open_settings":               "Open Settings",
+  "key.ingenium.toggle_async_pathfinding":    "Toggle Async Pathfinding"
+}
