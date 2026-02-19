@@ -17,8 +17,7 @@
   "environment": "*",
   "entrypoints": {
     "main":    ["com.ingenium.IngeniumMod"],
-    "client":  ["com.ingenium.client.IngeniumClientMod"],
-    "modmenu": ["com.ingenium.compat.IngeniumModMenuIntegration"]
+    "client":  ["com.ingenium.client.IngeniumClient"]
   },
   "mixins": ["ingenium.mixins.json"],
   "depends": {

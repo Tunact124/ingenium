@@ -1,65 +1,65 @@
 package com.ingenium;
 
-import com.ingenium.benchmark.SafeMetricsCollector;
-import com.ingenium.command.IngeniumCommand;
+import com.ingenium.benchmark.IngeniumBenchmarkService;
+import com.ingenium.benchmark.IngeniumDiagnostics;
+import com.ingenium.command.IngeniumCommands;
+import com.ingenium.compat.CompatibilityRegistry;
+import com.ingenium.compat.IrisCompatibilityLayer;
 import com.ingenium.config.IngeniumConfig;
-import com.ingenium.governor.IngeniumGovernor;
-import com.ingenium.memory.GcHintScheduler;
-import com.ingenium.threading.ChunkStampRegistry;
-import com.ingenium.threading.IngeniumExecutors;
-import com.ingenium.util.IngeniumLogger;
+import com.ingenium.core.IngeniumExecutors;
+import com.ingenium.core.IngeniumGovernor;
+import com.ingenium.core.spark.SparkIntegration;
 import net.fabricmc.api.ModInitializer;
-import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
-import net.fabricmc.fabric.api.entity.event.v1.ServerEntityCombatEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
-import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
-import net.fabricmc.fabric.api.event.player.UseBlockCallback;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.util.ActionResult;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public class IngeniumMod implements ModInitializer {
- 
-    public static final IngeniumGovernor GOVERNOR = new IngeniumGovernor();
-    public static volatile SafeMetricsCollector activeBenchmarkCollector = null;
- 
+public final class IngeniumMod implements ModInitializer {
+    public static final String MOD_ID = "ingenium";
+    public static final Logger LOG = LoggerFactory.getLogger("Ingenium");
+
+    private long tickStartNs;
+
     @Override
     public void onInitialize() {
-        // 1. Load config
-        IngeniumConfig.HANDLER.load();
-        com.ingenium.compat.CompatibilityBridge.logSummary();
- 
-        // 2. Register chunk events for stamp invalidation
-        ChunkStampRegistry.registerChunkEvents();
- 
-        // 3. Wire governor — START records tick start time (MSPT bug fix)
+        IrisCompatibilityLayer.detectEarly();
+        IngeniumConfig.init();
+        CompatibilityRegistry.init();
+
+        LOG.info("[Ingenium] Initializing (MC=1.20.1 Yarn=1.20.1+build.10 Java={})", Runtime.version());
+        LOG.info("[Ingenium] Config: {}", IngeniumConfig.get());
+
+        SparkIntegration.initSoft();
+        IngeniumCommands.register();
+        IngeniumBenchmarkService.get().init();
+
+        ServerLifecycleEvents.SERVER_STARTING.register(server -> {
+            IngeniumExecutors.init();
+            IngeniumGovernor.get().onServerStart(server);
+            IngeniumDiagnostics.get().onServerStartThreadCaptured();
+        });
+
+        ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
+            IngeniumGovernor.get().onServerStopping();
+            IngeniumExecutors.shutdown();
+        });
+
         ServerTickEvents.START_SERVER_TICK.register(server -> {
-            if (activeBenchmarkCollector != null) activeBenchmarkCollector.recordTick();
-            GOVERNOR.onTickStart(server);
-            IngeniumExecutors.drainCommitQueue(
-                GOVERNOR.getAiBudgetMs(),
-                IngeniumConfig.get().maxCommitsPerTick
-            );
+            if (!IngeniumConfig.get().masterEnabled) return;
+            tickStartNs = System.nanoTime();
+            IngeniumGovernor.get().onTickStart(tickStartNs);
         });
-        ServerTickEvents.END_SERVER_TICK.register(GOVERNOR::onTickEnd);
- 
-        // 4. Register Governor listeners
-        GOVERNOR.register(new GcHintScheduler());
- 
-        // 5. Wire activity classifiers
-        ServerEntityCombatEvents.AFTER_KILLED_OTHER_ENTITY.register(
-            GOVERNOR.getClassifier()::onCombat);
-        UseBlockCallback.EVENT.register((player, world, hand, hit) -> {
-            GOVERNOR.getClassifier().onBlockInteract(world, (PlayerEntity) player,
-                hit.getBlockPos());
-            return ActionResult.PASS;
+
+        ServerTickEvents.END_SERVER_TICK.register(server -> {
+            if (!IngeniumConfig.get().masterEnabled) return;
+            long tickNs = System.nanoTime() - tickStartNs;
+            IngeniumGovernor.get().onTickEnd(tickStartNs);
+            IngeniumDiagnostics.get().onTickEnd(tickNs);
+            IngeniumExecutors.drainCommitQueue(1_500_000L);
+            SparkIntegration.reportTickSoft();
         });
-        PlayerBlockBreakEvents.AFTER.register(
-            (w, p, pos, s, be) -> GOVERNOR.getClassifier().onBlockInteract(w, p, pos));
- 
-        // 6. Register /ingenium command
-        CommandRegistrationCallback.EVENT.register(
-            (d, r, e) -> IngeniumCommand.register(d));
- 
-        IngeniumLogger.info("Ingenium v2 initialized.");
+
+        LOG.info("[Ingenium] Ready. Compat: {}", IrisCompatibilityLayer.summary());
     }
 }
