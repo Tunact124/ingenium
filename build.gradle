@@ -87,44 +87,6 @@ loom {
     }
 }
 
-// Skip tests - they have singleton state issues
-// test {
-//     enabled = false
-// }
-
-// Task to run specific test suites
-task unitTests(type: Test) {
-    description = 'Runs unit tests only (fast)'
-    group = 'verification'
-    
-    useJUnitPlatform {
-        includeTags 'unit'
-    }
-}
-
-task integrationTests(type: Test) {
-    description = 'Runs integration tests (slower)'
-    group = 'verification'
-    
-    useJUnitPlatform {
-        includeTags 'integration'
-    }
-}
-
-// Performance benchmark task
-task performanceBenchmark(type: Test) {
-    description = 'Runs performance benchmarks'
-    group = 'verification'
-    
-    useJUnitPlatform {
-        includeTags 'performance'
-    }
-    
-    timeout = Duration.ofMinutes(10)
-    jvmArgs '-XX:+UseG1GC'
-    jvmArgs '-Xmx2G'
-}
-
 // Publishing configuration
 publishing {
     publications {

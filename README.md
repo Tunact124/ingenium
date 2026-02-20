@@ -8,6 +8,13 @@
 
 ---
 
+## Developer Resources & Mod Structure
+
+If you are a developer or an AI agent looking to understand the mod's architecture, please refer to:
+- [MOD_STRUCTURE.md](MOD_STRUCTURE.md) - Comprehensive overview of packages, key components, and code examples.
+
+---
+
 ## What is Ingenium?
 
 Ingenium is not "another optimization mod." It is the **world's first adaptive performance intelligence system** for Minecraft that learns, adapts, and optimizes in real-time based on your specific hardware, world, and playstyle.

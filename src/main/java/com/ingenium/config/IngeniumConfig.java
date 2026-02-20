@@ -2,15 +2,22 @@ package com.ingenium.config;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.ingenium.core.IngeniumGovernor;
 import net.fabricmc.loader.api.FabricLoader;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.EnumMap;
+import java.util.Map;
 
 public final class IngeniumConfig {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final String FILE = "ingenium.json";
+
+    public static final String IMPACT_HIGH = "HIGH";
+    public static final String IMPACT_MED = "MED";
+    public static final String IMPACT_LOW = "LOW";
 
     private static volatile IngeniumConfig INSTANCE;
 
@@ -19,6 +26,9 @@ public final class IngeniumConfig {
     }
 
     public static IngeniumConfig get() {
+        if (INSTANCE == null) {
+            init();
+        }
         return INSTANCE;
     }
 
@@ -26,8 +36,61 @@ public final class IngeniumConfig {
         return FabricLoader.getInstance().getConfigDir().resolve(FILE);
     }
 
+    private final Core core = new Core();
+    private final Budgets budgets = new Budgets();
+
+    public Core core() { return core; }
+    public Budgets budgets() { return budgets; }
+
+    public static class Core {
+        private boolean enableExecutors = true;
+        private boolean governorAutoProfile = true;
+        private int timeShareResetPeriodTicks = 200;
+        private int thresholdBalancedMspt = 25;
+        private int thresholdReactiveMspt = 40;
+        private int thresholdEmergencyMspt = 55;
+        private int profileStabilityTicks = 20;
+        private int commitQueueCapacity = 2048;
+        private double computePoolMultiplier = 1.0;
+        private boolean useVirtualThreadsForIO = true;
+        private int ioCoreThreads = 4;
+
+        public boolean enableExecutors() { return enableExecutors; }
+        public boolean governorAutoProfile() { return governorAutoProfile; }
+        public int timeShareResetPeriodTicks() { return timeShareResetPeriodTicks; }
+        public int thresholdBalancedMspt() { return thresholdBalancedMspt; }
+        public int thresholdReactiveMspt() { return thresholdReactiveMspt; }
+        public int thresholdEmergencyMspt() { return thresholdEmergencyMspt; }
+        public int profileStabilityTicks() { return profileStabilityTicks; }
+        public int commitQueueCapacity() { return commitQueueCapacity; }
+        public double computePoolMultiplier() { return computePoolMultiplier; }
+        public boolean useVirtualThreadsForIO() { return useVirtualThreadsForIO; }
+        public int ioCoreThreads() { return ioCoreThreads; }
+    }
+
+    public static class Budgets {
+        private final Map<IngeniumGovernor.Subsystem, Long> baseBudgets = new EnumMap<>(IngeniumGovernor.Subsystem.class);
+        private final Map<IngeniumGovernor.Subsystem, Boolean> enabledSubsystems = new EnumMap<>(IngeniumGovernor.Subsystem.class);
+
+        public Budgets() {
+            // Default budgets in nanoseconds
+            for (IngeniumGovernor.Subsystem s : IngeniumGovernor.Subsystem.values()) {
+                baseBudgets.put(s, 1_000_000L); // 1ms default
+                enabledSubsystems.put(s, true);
+            }
+        }
+
+        public boolean isSubsystemEnabled(IngeniumGovernor.Subsystem subsystem) {
+            return enabledSubsystems.getOrDefault(subsystem, true);
+        }
+
+        public long baseBudgetNs(IngeniumGovernor.Subsystem subsystem) {
+            return baseBudgets.getOrDefault(subsystem, 1_000_000L);
+        }
+    }
+
     // --------------------------
-    // Core / Governor
+    // Legacy fields for compatibility
     // --------------------------
     public volatile boolean masterEnabled = true;
 

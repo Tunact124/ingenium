@@ -8,61 +8,40 @@ This is the **Phase 2** implementation of the Ingenium Optimization Mod, transfo
 
 ## Project Structure
 
+> **NOTE:** For the most up-to-date and detailed architectural reference (including code examples), please see [MOD_STRUCTURE.md](MOD_STRUCTURE.md).
+
 ```
 Ingenium/
-├── build.gradle                          # Build configuration with FastUtil, MixinExtras
-├── gradle.properties                     # Version definitions
-├── settings.gradle                       # Gradle settings
+├── build.gradle                          # Build configuration with FastUtil, MixinExtras, YACL
+├── gradle.properties                     # Version definitions (MC 1.20.1)
 ├── README.md                             # User-facing documentation
-├── LICENSE                               # LGPL-3.0 license
-├── .gitignore                            # Git ignore rules
+├── MOD_STRUCTURE.md                      # Detailed architectural reference for AIs & Devs
 │
-├── gradle/wrapper/
-│   └── gradle-wrapper.properties         # Gradle wrapper config
-│
-├── src/main/java/com/Ingenium/
+├── src/main/java/com/ingenium/           # Base package (lowercase)
 │   │
-│   ├── IngeniumMod.java                  # Main entry point, lifecycle management
+│   ├── IngeniumMod.java                  # Main entry point
 │   │
-│   ├── adaptive/                         # ADAPTIVE SYSTEMS (Experimental)
-│   │   ├── PerformanceMonitor.java       # Real-time TPS/MSPT/memory tracking
-│   │   ├── TickGovernor.java             # Dynamic tick throttling
-│   │   └── AdaptiveOptimizer.java        # Self-tuning optimization controller
+│   ├── be/                               # Block Entity optimizations
+│   │   └── BlockEntityThrottlePolicy.java
 │   │
-│   ├── command/
-│   │   └── IngeniumCommand.java          # /Ingenium command with status/panic/debug
+│   ├── benchmark/                        # Benchmarking & Diagnostics
+│   │   ├── IngeniumBenchmarkService.java
+│   │   └── IngeniumDiagnostics.java
 │   │
-│   ├── config/
-│   │   └── IngeniumConfig.java           # Comprehensive configuration system
+│   ├── client/                           # Client-side UI & ModMenu
 │   │
-│   ├── gui/
-│   │   └── IngeniumControlScreen.java    # In-game configuration GUI (ModMenu)
+│   ├── core/                             # CORE SYSTEMS (Governor, Executors)
+│   │   ├── IngeniumGovernor.java         # Adaptive performance brain
+│   │   └── IngeniumExecutors.java        # Background task management
 │   │
-│   ├── integration/
-│   │   └── ModMenuIntegration.java       # ModMenu API integration
+│   ├── tick/                             # Tick scheduling optimizations
+│   │   └── WheelBackedWorldTickScheduler.java
 │   │
-│   ├── logic/                            # CORE OPTIMIZATIONS
-│   │   ├── SpatialGrid.java              # O(k) spatial hashing for entities
-│   │   └── EntityTracker.java            # Safe entity query wrapper with fallback
-│   │
-│   └── mixin/                            # MIXINS (Safe, chainable)
-│       ├── EntityMixin.java              # Entity lifecycle tracking
-│       ├── MobEntityMixin.java           # AI throttling integration
-│       ├── MinecraftServerMixin.java     # Server tick monitoring
-│       ├── WorldMixin.java               # Entity query optimization
-│       ├── client/
-│       │   └── WorldRendererMixin.java   # Render optimizations
-│       └── plugin/
-│           └── IngeniumMixinPlugin.java  # Conditional mixin loading
+│   └── mixin/                            # MIXINS (Safe hooks)
 │
 ├── src/main/resources/
 │   ├── fabric.mod.json                   # Fabric mod metadata
-│   ├── Ingenium.mixins.json              # Mixin configuration
-│   └── assets/Ingenium/
-│       └── icon.png.placeholder          # Mod icon placeholder
-│
-└── src/test/java/com/Ingenium/logic/
-    └── SpatialGridTest.java              # Comprehensive unit tests
+│   └── ingenium.mixins.json              # Mixin configuration
 ```
 
 ---
@@ -81,9 +60,9 @@ Ingenium/
 
 **Performance Impact:** 2-5x faster entity lookups in populated areas
 
-### 2. Adaptive Optimization System (Experimental)
+### 2. Adaptive Optimization System
 
-**Files:** `adaptive/AdaptiveOptimizer.java`, `adaptive/PerformanceMonitor.java`
+**Files:** `core/IngeniumGovernor.java`, `benchmark/IngeniumDiagnostics.java`
 
 - Real-time performance monitoring (TPS, MSPT, memory, GC)
 - Four optimization levels: CONSERVATIVE → BALANCED → AGGRESSIVE → EMERGENCY
@@ -92,9 +71,9 @@ Ingenium/
 
 **Safety:** Only activates when explicitly enabled in config
 
-### 3. Tick Governor (Experimental)
+### 3. Tick Governor
 
-**File:** `adaptive/TickGovernor.java`
+**File:** `core/IngeniumGovernor.java`
 
 - Dynamic tick budget management to maintain 20 TPS
 - Throttles non-essential entity ticking during lag
@@ -119,19 +98,18 @@ Ingenium/
 
 ### 5. Mixin Safety
 
-**Files:** `mixin/plugin/IngeniumMixinPlugin.java`, various mixins
+**Files:** `src/main/resources/ingenium.mixins.json`, `src/main/java/com/ingenium/mixin/`
 
-- Conditional mixin loading based on:
-  - Other mods present (Sodium, Lithium, FerriteCore, Starlight)
-  - User configuration
-  - Panic mode status
-  - Failure rates
-- Uses MixinExtras @WrapOperation for safe, chainable injections
-- Graceful fallback to vanilla on any error
+Current active Mixins:
+- `ScheduledTickWheelMixin`: Hooks into `ServerWorld` to replace the tick scheduler with our timing wheel.
+- `BlockEntityTickThrottleMixin`: Hooks into `BlockEntity` ticking to apply adaptive throttling.
+
+- Uses MixinExtras @WrapOperation for safe, chainable injections.
+- Graceful fallback to vanilla on any error or if disabled in config.
 
 ### 6. Failure Recovery
 
-**File:** `logic/EntityTracker.java`
+**File:** `benchmark/IngeniumDiagnostics.java`
 
 - Tracks success/failure rates for all operations
 - Auto-disables features with >1% failure rate
@@ -140,7 +118,7 @@ Ingenium/
 
 ### 7. Unit Tests
 
-**File:** `test/java/com/Ingenium/logic/SpatialGridTest.java`
+**File:** `src/test/java/com/ingenium/tick/WheelBackedWorldTickSchedulerTest.java`
 
 - 15+ comprehensive tests for SpatialGrid
 - Performance verification (O(k) complexity)

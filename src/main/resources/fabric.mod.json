@@ -17,14 +17,16 @@
   "environment": "*",
   "entrypoints": {
     "main":    ["com.ingenium.IngeniumMod"],
-    "client":  ["com.ingenium.client.IngeniumClient"]
+    "client":  ["com.ingenium.client.IngeniumClient"],
+    "modmenu": ["com.ingenium.client.IngeniumModMenu"]
   },
   "mixins": ["ingenium.mixins.json"],
   "depends": {
     "fabricloader":              ">=0.14.21",
     "fabric-api":                "*",
     "minecraft":                 "1.20.1",
-    "yet_another_config_lib_v3": ">=3.4.0"
+    "yet_another_config_lib_v3": ">=3.4.0",
+    "modmenu":                   "*"
   },
   "suggests": {
     "sodium": "*",

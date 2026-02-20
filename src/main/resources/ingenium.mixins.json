@@ -1,19 +1,14 @@
 {
-  "required": true,
+  "required": false,
   "minVersion": "0.8",
   "package": "com.ingenium.mixin",
   "compatibilityLevel": "JAVA_17",
   "mixins": [
     "ScheduledTickWheelMixin",
-    "BlockEntityTickThrottleMixin",
-    "ChunkStampMixin",
-    "ChunkWaitTimeMixin",
-    "access.WorldTickSchedulerAccessor",
-    "benchmark.ChunkLatencyVanillaMixin",
-    "benchmark.ServerWorldChunkManagerBindMixin"
+    "BlockEntityTickThrottleMixin"
   ],
   "client": [],
   "injectors": {
-    "defaultRequire": 1
+    "defaultRequire": 0
   }
 }
