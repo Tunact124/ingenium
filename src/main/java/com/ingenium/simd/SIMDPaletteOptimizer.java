@@ -2,33 +2,36 @@ package com.ingenium.simd;
 
 import com.ingenium.config.IngeniumConfig;
 
+/**
+ * Facade for palette scan operations. Internally delegates to the selected implementation.
+ *
+ * <p>Keep callsites stable even if you add a true Vector implementation later.
+ */
 public final class SIMDPaletteOptimizer {
-    private static final boolean VECTOR_AVAILABLE;
-
-    static {
-        boolean ok = false;
-        if (IngeniumConfig.getInstance().simdPaletteEnabled) {
-            try {
-                Class.forName("jdk.incubator.vector.IntVector");
-                ok = true;
-            } catch (Throwable ignored) {
-                ok = false;
-            }
-        }
-        VECTOR_AVAILABLE = ok;
-    }
+    private static volatile IPaletteOptimizer impl = PaletteOptimizerFactory.create();
 
     private SIMDPaletteOptimizer() {}
 
-    public static boolean vectorAvailable() {
-        return VECTOR_AVAILABLE;
+    /**
+     * Re-evaluates the implementation selection (e.g., after config reload).
+     */
+    public static void reload() {
+        impl = PaletteOptimizerFactory.create();
+    }
+
+    public static int countEquals(int[] data, int needle) {
+        return impl.countEquals(data, needle);
+    }
+
+    public static int countNonZero(int[] data) {
+        return impl.countNonZero(data);
     }
 
     public static int countMatching(int[] palette, int stateId) {
-        // Reflection-based vector path intentionally omitted in this drop.
-        // Refinement AI can add direct Vector API in a Java19+ sourceSet.
-        int c = 0;
-        for (int v : palette) if (v == stateId) c++;
-        return c;
+        return countEquals(palette, stateId);
+    }
+
+    public static boolean vectorAvailable() {
+        return impl.getClass().getSimpleName().contains("Vector");
     }
 }

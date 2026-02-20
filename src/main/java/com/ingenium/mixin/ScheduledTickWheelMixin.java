@@ -1,38 +1,44 @@
 package com.ingenium.mixin;
 
-import com.ingenium.benchmark.IngeniumDiagnostics;
-import net.minecraft.block.Block;
-import net.minecraft.fluid.Fluid;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.math.BlockPos;
+import com.ingenium.config.IngeniumConfig;
+import com.ingenium.tick.WheelBackedWorldTickScheduler;
+import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.Unique;
 
 /**
- * 1.20.1 hook points for scheduled block/fluid ticks.
+ * Bridges vanilla scheduled tick scheduling to our wheel.
  *
- * Do not target TickPriority overloads here; those signatures are not present in 1.20.1 Yarn.
+ * <p>This is a skeleton: exact injection targets differ between mappings and minor versions.
+ * The Architect should confirm targets in 1.20.1 Yarn and decide whether to wrap:
+ * - WorldTickScheduler<T> (blocks/fluids)
+ * - ScheduledTickView / TickScheduler interfaces
  */
-@Mixin(ServerWorld.class)
+@Mixin(World.class)
 public abstract class ScheduledTickWheelMixin {
 
-    @Inject(
-            method = "scheduleBlockTick(Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/Block;I)V",
-            at = @At("HEAD"),
-            require = 0
-    )
-    private void ingenium$onScheduleBlockTick(BlockPos pos, Block block, int delay, CallbackInfo ci) {
-        IngeniumDiagnostics.onScheduledBlockTick((ServerWorld) (Object) this, pos, delay);
+    @Unique
+    private WheelBackedWorldTickScheduler<Object> ingenium$wheel;
+
+    @Unique
+    private WheelBackedWorldTickScheduler<Object> ingenium$wheel() {
+        if (ingenium$wheel == null) {
+            // Defaults should come from config
+            ingenium$wheel = new WheelBackedWorldTickScheduler<>(
+                    4096, // wheel slots (pow2)
+                    1,    // resolution ticks
+                    50_000, // reinsertion cap per drain
+                    100_000 // cancel cap per drain
+            );
+        }
+        return ingenium$wheel;
     }
 
-    @Inject(
-            method = "scheduleFluidTick(Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/fluid/Fluid;I)V",
-            at = @At("HEAD"),
-            require = 0
-    )
-    private void ingenium$onScheduleFluidTick(BlockPos pos, Fluid fluid, int delay, CallbackInfo ci) {
-        IngeniumDiagnostics.onScheduledFluidTick((ServerWorld) (Object) this, pos, delay);
-    }
+    // --- Example injection points (placeholders) ---
+    // @Inject(method = "tick", at = @At("HEAD"))
+    // private void ingenium$beforeTick(CallbackInfo ci) { ... }
+
+    // Architect: Verify mapping for schedule method and ordered tick types.
+    // @Inject(method = "scheduleBlockTick", at = @At("HEAD"), cancellable = true)
+    // private void ingenium$scheduleBlockTick(..., CallbackInfo ci) { ... }
 }

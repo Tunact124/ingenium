@@ -53,7 +53,7 @@ public final class IngeniumGovernor {
     }
 
     /** Budget/time-share categories used across the mod. */
-    public enum Subsystem {
+    public enum SubsystemType {
         CORE_GOVERNOR,
         CORE_COMMIT_QUEUE,
 
@@ -77,13 +77,13 @@ public final class IngeniumGovernor {
 
     /**
      * Small RAII timer that accumulates into subsystem time-share with minimal overhead.
-     * Use in hot paths as: {@code try (var t = governor.time(Subsystem.X)) { ... }}
+     * Use in hot paths as: {@code try (var t = governor.time(SubsystemType.X)) { ... }}
      */
     public final class SubsystemTimer implements AutoCloseable {
-        private final Subsystem subsystem;
+        private final SubsystemType subsystem;
         private final long startNs;
 
-        private SubsystemTimer(Subsystem subsystem) {
+        private SubsystemTimer(SubsystemType subsystem) {
             this.subsystem = subsystem;
             this.startNs = System.nanoTime();
         }
@@ -108,10 +108,10 @@ public final class IngeniumGovernor {
 
     private volatile int stabilityCounter;
 
-    private final EnumMap<Subsystem, AtomicLong> subsystemNs = new EnumMap<>(Subsystem.class);
+    private final EnumMap<SubsystemType, AtomicLong> subsystemNs = new EnumMap<>(SubsystemType.class);
 
     private IngeniumGovernor() {
-        for (Subsystem s : Subsystem.values()) {
+        for (SubsystemType s : SubsystemType.values()) {
             subsystemNs.put(s, new AtomicLong());
         }
     }
@@ -125,7 +125,11 @@ public final class IngeniumGovernor {
         this.bypass = false;
         this.stabilityCounter = 0;
         resetSubsystemTimeShare();
-        LOGGER.info("Attached. AutoProfile={}", config == null || config.core().governorAutoProfile());
+        boolean auto = true;
+        if (config != null && config.core() != null) {
+            auto = config.core().governorAutoProfile();
+        }
+        LOGGER.info("Attached. AutoProfile={}", auto);
     }
 
     /** Detach on shutdown to release references. */
@@ -138,12 +142,38 @@ public final class IngeniumGovernor {
         return profile;
     }
 
-    public long currentMspt() {
+    public OptimizationProfile getCurrentProfile() {
+        return profile;
+    }
+
+    public long getCurrentMspt() {
         return currentMspt.get();
     }
 
-    public boolean isBypass() {
+    public boolean isBypassed() {
         return bypass;
+    }
+
+    public long getRemainingBudgetNs(SubsystemType subsystem) {
+        final IngeniumConfig cfg = this.config;
+        if (cfg == null) return 0L;
+        return effectiveBudgetNs(cfg, subsystem);
+    }
+
+    public long getSubsystemTimeNs(SubsystemType subsystem) {
+        return subsystemTimeNs(subsystem);
+    }
+
+    public void resetSubsystemTimes() {
+        resetSubsystemTimeShare();
+    }
+
+    public long currentMspt() {
+        return getCurrentMspt();
+    }
+
+    public boolean isBypass() {
+        return isBypassed();
     }
 
     /**
@@ -179,7 +209,7 @@ public final class IngeniumGovernor {
         // Auto-transition if enabled and not in manual mode.
         final IngeniumConfig cfg = this.config;
         if (!manualProfile && cfg != null && cfg.core().governorAutoProfile()) {
-            try (SubsystemTimer ignored = time(Subsystem.CORE_GOVERNOR)) {
+            try (SubsystemTimer ignored = time(SubsystemType.CORE_GOVERNOR)) {
                 maybeTransitionProfile(cfg, currentMspt.get());
             }
         }
@@ -194,12 +224,12 @@ public final class IngeniumGovernor {
     }
 
     /** Create a timer for subsystem time-share accounting. */
-    public SubsystemTimer time(Subsystem subsystem) {
+    public SubsystemTimer time(SubsystemType subsystem) {
         return new SubsystemTimer(subsystem);
     }
 
     /** Returns accumulated nanoseconds spent in subsystem since last reset. */
-    public long subsystemTimeNs(Subsystem subsystem) {
+    public long subsystemTimeNs(SubsystemType subsystem) {
         return subsystemNs.get(subsystem).get();
     }
 
@@ -210,7 +240,7 @@ public final class IngeniumGovernor {
     /**
      * Budget check (cheap): if bypass is enabled, always allow (baseline mode should not self-throttle).
      */
-    public boolean hasBudget(Subsystem subsystem, long estimatedCostNs) {
+    public boolean hasBudget(SubsystemType subsystem, long estimatedCostNs) {
         if (bypass) return true;
 
         final IngeniumConfig cfg = this.config;
@@ -227,11 +257,11 @@ public final class IngeniumGovernor {
      *
      * <p>This implementation is deliberately simple and allocation-free:
      * budgets are computed from config/profile; per-tick enforcement is done by callers
-     * using {@link #hasBudget(Subsystem, long)} and/or sampling time-share.
+     * using {@link #hasBudget(SubsystemType, long)} and/or sampling time-share.
      *
      * <p>Section 5.1 (Benchmark/Diagnostics) will formalize "System Time Share" reporting.
      */
-    public boolean consumeBudget(Subsystem subsystem, long estimatedCostNs) {
+    public boolean consumeBudget(SubsystemType subsystem, long estimatedCostNs) {
         return hasBudget(subsystem, estimatedCostNs);
     }
 
@@ -248,7 +278,7 @@ public final class IngeniumGovernor {
         };
     }
 
-    private long effectiveBudgetNs(IngeniumConfig cfg, Subsystem subsystem) {
+    private long effectiveBudgetNs(IngeniumConfig cfg, SubsystemType subsystem) {
         final long base = cfg.budgets().baseBudgetNs(subsystem);
         final double mult = profile.budgetMultiplier;
         return (long) Math.max(0L, base * mult);
@@ -286,11 +316,25 @@ public final class IngeniumGovernor {
                 prev, next, currentMspt.get(), bypass, manualProfile);
     }
 
+    /**
+     * Feedback from Diagnostics: how much wall time the mod is consuming overall.
+     */
+    public void reportSystemSharePermille(long permille) {
+        // Architect: use this to damp AGGRESSIVE transitions if mod overhead is high
+    }
+
+    /**
+     * Feedback from Diagnostics: average cost of a subsystem.
+     */
+    public void reportSubsystemAvgMicros(SubsystemType subsystem, long avgUs) {
+        // Architect: use this for dynamic budget adjustment
+    }
+
     // Legacy/Compatibility methods
     public static IngeniumGovernor getInstance() { return get(); }
     public OptimizationProfile getProfile() { return profile; }
     public int blockEntityTickDivisor() { return profile.beDivisor; }
-    public void recordSubsystemTime(Subsystem subsystem, long ns) {
+    public void recordSubsystemTime(SubsystemType subsystem, long ns) {
         subsystemNs.get(subsystem).addAndGet(ns);
     }
     public boolean allowBlockEntityTick(net.minecraft.world.chunk.BlockEntityTickInvoker invoker) { return true; }

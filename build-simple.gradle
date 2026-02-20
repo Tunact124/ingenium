@@ -3,7 +3,7 @@ plugins {
     id 'java'
 }
 
-version = '0.2.0-alpha'
+version = '1.0.0-alpha'
 group = 'com.Ingenium'
 
 repositories {

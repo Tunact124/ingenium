@@ -1,30 +1,47 @@
 package com.ingenium.mixin;
 
-import com.ingenium.core.IngeniumGovernor;
-import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
-import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.world.chunk.BlockEntityTickInvoker;
+import com.ingenium.be.BlockEntityThrottleService;
+import net.minecraft.world.chunk.WorldChunk;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.Unique;
 
 /**
- * Wraps block entity ticking with governor checks.
+ * Wraps BE ticking to apply throttling.
+ *
+ * <p>Architect: Verify the exact method and invocation target in 1.20.1 Yarn.
+ * Common patterns:
+ * - WorldChunk#tickBlockEntities / ServerWorld#tickBlockEntities
+ * - invocation of BlockEntityTicker#tick(World, BlockPos, BlockState, BlockEntity)
  */
-@Mixin(ServerWorld.class)
+@Mixin(WorldChunk.class)
 public abstract class BlockEntityTickThrottleMixin {
 
-    @WrapOperation(
-            method = "tickBlockEntities",
-            at = @At(
-                    value = "INVOKE",
-                    target = "Lnet/minecraft/world/chunk/BlockEntityTickInvoker;tick()V"
-            ),
-            require = 0
-    )
-    private void ingenium$wrapBlockEntityTick(BlockEntityTickInvoker invoker, Operation<Void> original) {
-        if (IngeniumGovernor.get().allowBlockEntityTick(invoker)) {
-            original.call(invoker);
+    @Unique
+    private BlockEntityThrottleService ingenium$beThrottle;
+
+    @Unique
+    private BlockEntityThrottleService ingenium$svc() {
+        if (ingenium$beThrottle == null) {
+            // Placeholder service; Architect may replace with off-heap backed implementation.
+            ingenium$beThrottle = BlockEntityThrottleService.createDefault();
         }
+        return ingenium$beThrottle;
     }
+
+    // Example WrapOperation around the ticker tick call (disabled placeholder).
+    // @WrapOperation(
+    //         method = "tickBlockEntities", // Architect: Verify mapping
+    //         at = @At(
+    //                 value = "INVOKE",
+    //                 target = "Lnet/minecraft/block/entity/BlockEntityTicker;tick(Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/BlockState;Lnet/minecraft/block/entity/BlockEntity;)V"
+    //         )
+    // )
+    // private void ingenium$wrapBetick(Object ticker,
+    //                                 Object world,
+    //                                 Object pos,
+    //                                 Object state,
+    //                                 Object be,
+    //                                 Operation<Void> original) {
+    //     // Implementation to be wired after mapping verification
+    // }
 }

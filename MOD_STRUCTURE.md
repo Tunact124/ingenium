@@ -1,106 +1,90 @@
-# Ingenium Optimization - Mod Structure & Developer Reference
+# Ingenium Optimization - Mod Structure & Code Overview
 
-This document provides a comprehensive overview of the Ingenium Optimization Mod's architecture and codebase. It is intended for both human developers and AI agents to understand how the mod is structured and how its components interact.
-
-## 🧠 Design Philosophy: Adaptive Intelligence
-Ingenium is not a static set of optimizations. It is an **Adaptive Performance Intelligence System** for Minecraft 1.20.1.
-- **Goal**: Maintain 20 TPS (50ms MSPT) by dynamically adjusting optimization levels.
-- **Method**: Real-time performance monitoring, performance budgets, and adaptive profiling.
-- **Safety**: Every optimization must have a safe fallback to vanilla behavior.
+Ingenium is an **Adaptive Performance Intelligence System** for Minecraft 1.20.1 (Fabric). It aims to maintain 20 TPS (50ms MSPT) by dynamically adjusting its optimization strategies based on real-time server load.
 
 ---
 
-## 📁 Package Structure (com.ingenium)
+### 📁 Project Structure (com.ingenium)
 
-| Package | Description | Key Classes |
-|---------|-------------|-------------|
-| `com.ingenium` | Entry point and mod initialization. | `IngeniumMod` |
-| `com.ingenium.core` | The core "brain" and engine of the mod. | `IngeniumGovernor`, `IngeniumExecutors`, `GCAdaptiveScheduler` |
-| `com.ingenium.tick` | High-performance tick scheduling replacements. | `WheelBackedWorldTickScheduler`, `WheelStore` |
-| `com.ingenium.be` | Block Entity optimization policies. | `BlockEntityThrottlePolicy` |
-| `com.ingenium.benchmark` | Benchmarking and real-time diagnostics. | `IngeniumBenchmarkService`, `IngeniumDiagnostics` |
-| `com.ingenium.mixin` | Hooks into Minecraft/Fabric internals. | `ScheduledTickWheelMixin`, `BlockEntityTickThrottleMixin` |
-| `com.ingenium.config` | Configuration handling (YACL integration). | `IngeniumConfig`, `IngeniumYaclScreen` |
-| `com.ingenium.compat` | Compatibility layers for other mods. | `CompatibilityRegistry`, `IrisCompatibilityLayer` |
-| `com.ingenium.ds` | Custom high-performance data structures. | `LongObjHashMap` |
-| `com.ingenium.offheap` | Memory management and off-heap storage. | `OffHeapBlockEntityStore` |
-| `com.ingenium.simd` | SIMD-based performance optimizations. | `SIMDPaletteOptimizer` |
+| Package | Role | Key Components |
+|:---|:---|:---|
+| `com.ingenium.core` | **The Brain** | `IngeniumGovernor` (budget/profile manager), `IngeniumExecutors` (thread pools), `GCAdaptiveScheduler`. |
+| `com.ingenium.tick` | **Tick Engine** | `WheelBackedWorldTickScheduler` - Replaces vanilla's O(N) tick scheduler with an O(1) timing wheel. |
+| `com.ingenium.be` | **BE Throttling** | `BlockEntityThrottleService` - Dynamically skips ticks for Block Entities far from players. |
+| `com.ingenium.offheap`| **Memory** | `OffHeapBlockEntityStore` - Stores BE metadata outside the Java heap to reduce GC pressure. |
+| `com.ingenium.simd` | **Vectorization** | `SIMDPaletteOptimizer` - Uses CPU SIMD instructions for block palette operations. |
+| `com.ingenium.benchmark`| **Monitoring** | `IngeniumBenchmarkService`, `ChunkLatencyMonitor` - Real-time performance tracking and diagnostics. |
+| `com.ingenium.compat` | **Compatibility** | `CompatibilityRegistry`, `IrisCompatibilityLayer` - Detects and yields to other optimization mods. |
+| `com.ingenium.config` | **Settings** | `IngeniumConfig`, `IngeniumYaclScreen` - Config management via YetAnotherConfigLib. |
+| `com.ingenium.ds` | **Structures** | `LongObjHashMap` - High-performance primitive-specialized collections to avoid boxing. |
+| `com.ingenium.mixin` | **Integration** | Mixins for world ticking, chunk loading, and BE processing. |
 
 ---
 
-## 🛠 Key Components & Code Examples
+### 💻 Code Examples & Logic
 
-### 1. `IngeniumGovernor` - The Performance Brain
-The Governor manages four optimization profiles based on current MSPT and heap pressure.
+#### 1. Adaptive Performance Governor (`IngeniumGovernor`)
+The Governor monitors MSPT and transitions between four profiles: `AGGRESSIVE`, `BALANCED`, `REACTIVE`, and `EMERGENCY`.
 
 ```java
-public enum OptimizationProfile {
-    AGGRESSIVE(1, 8.0f, 10.0f, 6.0f, 5.0f, 0.85f, true),
-    BALANCED(2, 6.0f, 7.0f, 4.0f, 4.0f, 0.75f, true),
-    REACTIVE(3, 4.0f, 5.0f, 2.0f, 3.0f, 0.65f, true),
-    EMERGENCY(6, 2.0f, 2.5f, 0.5f, 1.0f, 0.55f, false);
-    
-    // beDiv: divisor for block entity ticking
-    // budgets: time (in ns) allowed for different subsystems per tick
+// Transitions are based on MSPT thresholds (e.g., 40ms, 45ms, 50ms)
+public void onTickEnd() {
+    long mspt = getMspt(); // Simplified
+    if (mspt > thresholds.emergency()) {
+        transitionTo(OptimizationProfile.EMERGENCY);
+    }
 }
 
-// Logic for consuming budget:
-public boolean consumeBudget(Subsystem subsystem, long costNs) {
-    AtomicLong budget = getBudgetFor(subsystem);
-    if (budget == null) return true;
-    // ... atomic budget subtraction logic ...
+// Subsystems consume "time budget" from the Governor
+if (governor.consumeBudget(SubsystemType.BLOCK_ENTITIES, estimatedCostNs)) {
+    performTick();
 }
 ```
 
-### 2. `WheelBackedWorldTickScheduler` - Timing Wheel
-Replaces vanilla's `WorldTickScheduler` with a zero-allocation, O(1) timing wheel for scheduled ticks (blocks and fluids).
+#### 2. High-Performance Timing Wheel (`WheelBackedWorldTickScheduler`)
+Replaces the vanilla `priority queue` with a `timing wheel` (buckets per tick). This makes scheduling and draining ticks nearly O(1).
 
 ```java
-public final class WheelBackedWorldTickScheduler<T> {
-    private final ObjectArrayList<OrderedTick<T>>[] buckets; // Slot-based storage
-    private final LongObjMap<ObjectArrayList<OrderedTick<T>>> overflowByCycle; // Long-delay storage
-
-    public int drainDue(long worldTimeNow, int limit, TickConsumer<T> consumer) {
-        // Zero-allocation drain: iterates only through current time slot's bucket
-        // Advance cycle logic handles overflow re-insertion.
+public int drainDue(long nowTick, int limit, TickConsumer<T> consumer) {
+    int slot = slotForTick(nowTick);
+    var bucket = buckets[slot];
+    // Drain only what's due for the current slot
+    for (Entry<T> entry : bucket) {
+        if (entry.cycle <= currentCycle) {
+            consumer.accept(entry.payload);
+        }
     }
 }
 ```
 
-### 3. `BlockEntityThrottlePolicy` - Adaptive Throttling
-Dynamically decides if a Block Entity should tick based on its proximity to players and the current Governor profile.
+#### 3. Adaptive Block Entity Throttling (`BlockEntityThrottlePolicy`)
+Decides whether to tick a Block Entity (BE) based on player proximity and the current Governor profile.
 
 ```java
-public static boolean shouldTick(ServerWorld world, BlockEntity be, long worldTime) {
-    // 1. Critical Radius Check (always tick if near player)
-    // 2. Governor Divisor (tick every Nth tick based on profile)
-    // 3. Budget Check (consume Governor budget)
-    // 4. Emergency Sampling (deterministic skipping in emergency)
+public static Decision shouldTick(Inputs in) {
+    // 1. Critical Radius: Always tick if a player is within X blocks
+    if (in.distSq() <= in.criticalRadiusSq()) return Decision.tick("near_player");
+
+    // 2. Starvation Safety: Force tick if it hasn't ticked for too long
+    if (in.skipCount() >= in.maxSkip()) return Decision.tick("safety_net");
+
+    // 3. Adaptive Throttling: Tick every Nth tick based on server load
+    return (in.worldTime() % in.divisor() == 0) ? Decision.tick("ok") : Decision.skip("throttled");
 }
+```
+
+#### 4. Off-Heap Metadata Storage (`OffHeapBlockEntityStore`)
+To prevent millions of small objects from bloating the heap and triggering GC, BE metadata (like skip counts) is stored in native memory.
+
+```java
+// Accessing metadata without creating heap objects
+long pointer = store.getPointer(blockPos.asLong());
+int skipCount = UnsafeUtil.getInt(pointer + SKIP_COUNT_OFFSET);
 ```
 
 ---
 
-## 🤖 Guide for AI Agents & Contributors
-
-### ⚠️ SAFETY FIRST: Do not mess up what we have!
-1. **Never use `Thread.sleep()`** or blocking operations on the server thread.
-2. **Minimize allocations** in the hot path (ticking code). Use `fastutil` or custom data structures like `LongObjHashMap`.
-3. **Always use `IngeniumConfig.get().featureEnabled`** checks before applying any logic.
-4. **Preserve Mixin Chainability**: Use `@WrapOperation` from `MixinExtras` instead of `@Redirect` or `@Overwrite` whenever possible.
-5. **Fallback**: Ensure that if a component fails or is disabled, the game reverts to vanilla behavior without crashing.
-
-### How to add a new optimization:
-1. Define a toggle in `IngeniumConfig`.
-2. Register your optimization's budget/subsystem in `IngeniumGovernor` if it's a per-tick task.
-3. Use a Mixin to hook into the relevant Minecraft class.
-4. Add benchmarks in `com.ingenium.benchmark` to prove the performance gain.
-
----
-
-## 📋 Build & Compatibility
-- **Minecraft**: 1.20.1 (Fabric)
-- **Java**: 17+
-- **Key Dependencies**: FastUtil, MixinExtras, YACL v3, ModMenu, Spark (Soft Depend).
-- **Incompatible with**: Optifine (and Optifabric).
-- **Complements**: Sodium, Lithium, FerriteCore, Starlight.
+### 🚀 Key Philosophies
+1. **Zero-Allocation in Hot Paths**: Avoiding `new` during entity/block ticking.
+2. **Safe Fallbacks**: If any optimization fails, it reverts to vanilla behavior rather than crashing.
+3. **Complementary**: Automatically detects and yields to mods like Sodium, Lithium, and FerriteCore.

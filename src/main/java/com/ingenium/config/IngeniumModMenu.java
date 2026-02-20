@@ -1,12 +1,15 @@
-package com.ingenium.client;
+package com.ingenium.config;
 
-import com.ingenium.config.IngeniumYaclScreen;
 import com.terraformersmc.modmenu.api.ConfigScreenFactory;
 import com.terraformersmc.modmenu.api.ModMenuApi;
 
+/**
+ * ModMenu entrypoint for Ingenium config.
+ */
 public final class IngeniumModMenu implements ModMenuApi {
+
     @Override
     public ConfigScreenFactory<?> getModConfigScreenFactory() {
-        return parent -> IngeniumYaclScreen.create(parent);
+        return IngeniumYaclScreen::create;
     }
 }

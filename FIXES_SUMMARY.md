@@ -339,7 +339,7 @@ chmod +x gradlew
 ### Output Location
 The built mod JAR will be at:
 ```
-build/libs/Ingenium-optimization-0.2.0-alpha.jar
+build/libs/ingenium-1.0.0-alpha.jar
 ```
 
 ---

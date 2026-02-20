@@ -2,13 +2,13 @@ package com.ingenium;
 
 import com.ingenium.benchmark.IngeniumBenchmarkService;
 import com.ingenium.benchmark.IngeniumDiagnostics;
-import com.ingenium.command.IngeniumCommands;
+import com.ingenium.command.IngeniumCommand;
 import com.ingenium.compat.CompatibilityRegistry;
 import com.ingenium.compat.IrisCompatibilityLayer;
 import com.ingenium.config.IngeniumConfig;
 import com.ingenium.core.IngeniumExecutors;
 import com.ingenium.core.IngeniumGovernor;
-import com.ingenium.core.IngeniumGovernor.Subsystem;
+import com.ingenium.core.IngeniumGovernor.SubsystemType;
 import com.ingenium.core.IngeniumGovernor.SubsystemTimer;
 import com.ingenium.core.spark.SparkIntegration;
 import net.fabricmc.api.ModInitializer;
@@ -46,7 +46,7 @@ public final class IngeniumMod implements ModInitializer {
         IngeniumBenchmarkService.get().init();
 
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
-            IngeniumCommands.register(dispatcher);
+            IngeniumCommand.register(dispatcher);
             LOGGER.info("Commands registered (env={})", environment);
         });
 
@@ -65,6 +65,7 @@ public final class IngeniumMod implements ModInitializer {
         final var config = IngeniumConfig.get();
 
         IngeniumGovernor.get().attach(server, config);
+        IngeniumBenchmarkService.get().initialize(server);
 
         // Executors are safe to init lazily, but we prime them here to surface misconfig early.
         if (config != null && config.core().enableExecutors()) {
@@ -80,6 +81,12 @@ public final class IngeniumMod implements ModInitializer {
 
     private void onServerStopping(MinecraftServer server) {
         try {
+            IngeniumBenchmarkService.get().shutdown();
+        } catch (Throwable t) {
+            LOGGER.warn("Benchmark shutdown encountered an error (ignored).", t);
+        }
+
+        try {
             IngeniumExecutors.shutdown();
         } catch (Throwable t) {
             LOGGER.warn("Executors shutdown encountered an error (ignored).", t);
@@ -93,23 +100,27 @@ public final class IngeniumMod implements ModInitializer {
     }
 
     private void onTickStart(MinecraftServer server) {
+        final long now = System.nanoTime();
+        IngeniumDiagnostics.get().onTickStart(now);
+
         final var gov = IngeniumGovernor.get();
         gov.onTickStart();
 
         // If other subsystems need main-thread commits, process a bounded number per tick.
         // This is intentionally *before* tick-end MSPT sampling so it counts into MSPT.
         if (IngeniumConfig.get().core().enableExecutors()) {
-            try (SubsystemTimer ignored = gov.time(Subsystem.CORE_COMMIT_QUEUE)) {
+            try (SubsystemTimer ignored = gov.time(SubsystemType.CORE_COMMIT_QUEUE)) {
                 IngeniumExecutors.processCommitQueue(gov.reinsertionCapHint());
             }
         }
     }
 
     private void onTickEnd(MinecraftServer server) {
+        final long now = System.nanoTime();
         IngeniumGovernor.get().onTickEnd();
+        IngeniumDiagnostics.get().onTickEnd(now);
+        IngeniumBenchmarkService.get().onTick(server.getTicks());
+
         SparkIntegration.reportTickSoft();
-        
-        // Backward compatibility for diagnostics if it still expects raw tick time
-        // Note: Governor already calculated MSPT.
     }
 }
