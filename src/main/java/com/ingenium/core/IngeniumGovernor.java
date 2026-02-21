@@ -30,6 +30,12 @@ public final class IngeniumGovernor {
     private static final Logger LOGGER = LogManager.getLogger("Ingenium/Governor");
     private static final IngeniumGovernor INSTANCE = new IngeniumGovernor();
 
+    public static final double ENTER_EMERGENCY_MSPT = 52.0;
+    public static final double EXIT_EMERGENCY_MSPT = 45.0;
+    public static final int ENTER_EMERGENCY_TICKS = 100;
+    public static final int EXIT_EMERGENCY_TICKS = 200;
+    private static final long MODE_CHANGE_COOLDOWN_NANOS = 5_000_000_000L;
+
     public static IngeniumGovernor get() {
         return INSTANCE;
     }
@@ -66,7 +72,17 @@ public final class IngeniumGovernor {
 
         CHUNK_IO,
         NETWORK,
-        
+
+        HOPPER,
+        XP_ORBS,
+        POI_QUERIES,
+
+        // Visual Pipeline
+        ENTITY_BACKFACE_CULLING,
+        ITEM_FAST_PATH,
+        FAST_FRUSTUM,
+        CULL_PASS,
+
         // Legacy/Misc
         SCHEDULED_TICKS, 
         BLOCK_ENTITIES,
@@ -108,12 +124,22 @@ public final class IngeniumGovernor {
 
     private volatile int stabilityCounter;
 
+    private int overBudgetTicks;
+    private int underBudgetTicks;
+    private long lastModeChangeNanos;
+    private final GovernorBudgetProfile budgetProfile = GovernorBudgetProfile.defaults();
+
+    private int remainingEntityCull;
+    private int remainingItemFastPath;
+
     private final EnumMap<SubsystemType, AtomicLong> subsystemNs = new EnumMap<>(SubsystemType.class);
 
     private IngeniumGovernor() {
         for (SubsystemType s : SubsystemType.values()) {
             subsystemNs.put(s, new AtomicLong());
         }
+        this.lastModeChangeNanos = System.nanoTime();
+        resetFrameBudgets();
     }
 
     /** Attach to a running server instance. */
@@ -206,6 +232,14 @@ public final class IngeniumGovernor {
         lastTickNs.set(dtNs);
         currentMspt.set(dtNs / 1_000_000L);
 
+        // Record to global metrics
+        var rt = Ingenium.runtime();
+        if (rt != null) {
+            rt.metrics().mspt().recordTickNs(dtNs);
+            // Update mode from MSPT evidence (last 100 ticks)
+            updateModeFromMspt(rt.metrics().mspt().avgMspt100());
+        }
+
         // Auto-transition if enabled and not in manual mode.
         final IngeniumConfig cfg = this.config;
         if (!manualProfile && cfg != null && cfg.core().governorAutoProfile()) {
@@ -217,7 +251,7 @@ public final class IngeniumGovernor {
         // Optional: periodic decay/reset of subsystem time-share to avoid unbounded growth.
         if (server != null) {
             final int period = (cfg != null) ? Math.max(20, cfg.core().timeShareResetPeriodTicks()) : 200;
-            if ((server.getTicks() % period) == 0) { // Architect: Verify mapping MinecraftServer#getTicks
+            if ((server.getTickCount() % period) == 0) { // Architect: Verify mapping MinecraftServer#getTicks
                 resetSubsystemTimeShare();
             }
         }
@@ -263,6 +297,84 @@ public final class IngeniumGovernor {
      */
     public boolean consumeBudget(SubsystemType subsystem, long estimatedCostNs) {
         return hasBudget(subsystem, estimatedCostNs);
+    }
+
+    /**
+     * Called once per rendered frame (client-only) to reset token budgets.
+     */
+    public void beginClientFrame() {
+        resetFrameBudgets();
+    }
+
+    /**
+     * Check if a feature is allowed by the current budget.
+     */
+    public boolean allow(SubsystemType feature) {
+        if (bypass) return true;
+        return switch (feature) {
+            case ENTITY_BACKFACE_CULLING -> consumeEntityCull();
+            case ITEM_FAST_PATH -> consumeItemFastPath();
+            default -> true;
+        };
+    }
+
+    private boolean consumeEntityCull() {
+        if (remainingEntityCull <= 0) return false;
+        remainingEntityCull--;
+        return true;
+    }
+
+    private boolean consumeItemFastPath() {
+        if (remainingItemFastPath <= 0) return false;
+        remainingItemFastPath--;
+        return true;
+    }
+
+    private void resetFrameBudgets() {
+        if (profile == OptimizationProfile.EMERGENCY) {
+            remainingEntityCull = budgetProfile.entityBackfaceCullPerFrameEmergency();
+            remainingItemFastPath = budgetProfile.itemFastPathPerFrameEmergency();
+        } else {
+            remainingEntityCull = budgetProfile.entityBackfaceCullPerFrame();
+            remainingItemFastPath = budgetProfile.itemFastPathPerFrame();
+        }
+    }
+
+    private void updateModeFromMspt(double mspt) {
+        if (Double.isNaN(mspt) || mspt <= 0.0) return;
+
+        if (profile != OptimizationProfile.EMERGENCY) {
+            if (mspt > ENTER_EMERGENCY_MSPT) {
+                overBudgetTicks++;
+                if (overBudgetTicks >= ENTER_EMERGENCY_TICKS && canChangeMode()) {
+                    setMode(OptimizationProfile.EMERGENCY);
+                }
+            } else {
+                overBudgetTicks = 0;
+            }
+        } else {
+            if (mspt < EXIT_EMERGENCY_MSPT) {
+                underBudgetTicks++;
+                if (underBudgetTicks >= EXIT_EMERGENCY_TICKS && canChangeMode()) {
+                    setMode(OptimizationProfile.BALANCED);
+                }
+            } else {
+                underBudgetTicks = 0;
+            }
+        }
+    }
+
+    private boolean canChangeMode() {
+        return (System.nanoTime() - lastModeChangeNanos) >= MODE_CHANGE_COOLDOWN_NANOS;
+    }
+
+    private void setMode(OptimizationProfile newMode) {
+        if (newMode == profile) return;
+        transitionTo(newMode);
+        overBudgetTicks = 0;
+        underBudgetTicks = 0;
+        lastModeChangeNanos = System.nanoTime();
+        resetFrameBudgets();
     }
 
     /**
@@ -337,5 +449,5 @@ public final class IngeniumGovernor {
     public void recordSubsystemTime(SubsystemType subsystem, long ns) {
         subsystemNs.get(subsystem).addAndGet(ns);
     }
-    public boolean allowBlockEntityTick(net.minecraft.world.chunk.BlockEntityTickInvoker invoker) { return true; }
+    public boolean allowBlockEntityTick(net.minecraft.world.level.block.entity.TickingBlockEntity invoker) { return true; }
 }

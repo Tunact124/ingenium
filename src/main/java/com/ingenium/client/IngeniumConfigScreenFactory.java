@@ -1,8 +1,8 @@
 package com.ingenium.client;
 
 import com.ingenium.benchmark.IngeniumDiagnostics;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.text.Text;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.Component;
 
 /**
  * Stub factory for the config screen.
@@ -16,7 +16,7 @@ public final class IngeniumConfigScreenFactory {
     }
 
     /** Tooltip that includes estimated impact + latest observed diagnostic hints. */
-    public static Text tooltipWithImpact(String base, String impactClass) {
+    public static Component tooltipWithImpact(String base, String impactClass) {
         IngeniumDiagnostics d = IngeniumDiagnostics.get();
 
         String observed =
@@ -30,7 +30,7 @@ public final class IngeniumConfigScreenFactory {
                 "\n\n" + impactClass +
                 observed;
 
-        return Text.literal(text);
+        return Component.literal(text);
     }
 
     // Tooltip strings (UI uses these verbatim)

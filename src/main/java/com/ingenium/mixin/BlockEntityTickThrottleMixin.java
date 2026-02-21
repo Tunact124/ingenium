@@ -1,7 +1,7 @@
 package com.ingenium.mixin;
 
 import com.ingenium.be.BlockEntityThrottleService;
-import net.minecraft.world.chunk.WorldChunk;
+import net.minecraft.world.level.chunk.LevelChunk;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 
@@ -13,7 +13,7 @@ import org.spongepowered.asm.mixin.Unique;
  * - WorldChunk#tickBlockEntities / ServerWorld#tickBlockEntities
  * - invocation of BlockEntityTicker#tick(World, BlockPos, BlockState, BlockEntity)
  */
-@Mixin(WorldChunk.class)
+@Mixin(LevelChunk.class)
 public abstract class BlockEntityTickThrottleMixin {
 
     @Unique

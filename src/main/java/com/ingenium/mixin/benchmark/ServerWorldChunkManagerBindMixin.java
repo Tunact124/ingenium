@@ -1,22 +1,22 @@
 package com.ingenium.mixin.benchmark;
 
 import com.ingenium.benchmark.IngeniumBenchmarkService;
-import net.minecraft.server.world.ServerChunkManager;
-import net.minecraft.server.world.ServerWorld;
+import net.minecraft.server.level.ServerChunkCache;
+import net.minecraft.server.level.ServerLevel;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(ServerWorld.class)
+@Mixin(ServerLevel.class)
 public abstract class ServerWorldChunkManagerBindMixin {
 
-    @Shadow public abstract ServerChunkManager getChunkManager();
+    @Shadow public abstract ServerChunkCache getChunkSource();
 
     @Inject(method = "<init>", at = @At("TAIL"))
     private void ingenium$bind(CallbackInfo ci) {
-        ServerWorld world = (ServerWorld)(Object)this;
-        IngeniumBenchmarkService.get().bindChunkManager(this.getChunkManager(), world);
+        ServerLevel world = (ServerLevel)(Object)this;
+        IngeniumBenchmarkService.get().bindChunkManager(this.getChunkSource(), world);
     }
 }

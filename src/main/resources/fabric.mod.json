@@ -16,7 +16,7 @@
   "icon": "assets/ingenium/icon.png",
   "environment": "*",
   "entrypoints": {
-    "main":    ["com.ingenium.IngeniumMod"],
+    "main":    ["com.ingenium.core.Ingenium"],
     "client":  ["com.ingenium.client.IngeniumClient"],
     "modmenu": ["com.ingenium.config.IngeniumModMenu"]
   },

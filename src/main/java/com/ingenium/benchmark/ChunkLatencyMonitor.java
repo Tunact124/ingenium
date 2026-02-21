@@ -2,8 +2,8 @@ package com.ingenium.benchmark;
 
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.world.World;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.level.Level;
 
 public final class ChunkLatencyMonitor {
     public Snapshot snapshotAndReset() {
@@ -11,10 +11,10 @@ public final class ChunkLatencyMonitor {
     }
 
     // Best-effort no-op recorders to satisfy callers; full implementation can be added later.
-    public void recordRequest(RegistryKey<World> dim, long packedChunkPos, long nowNs) {
+    public void recordRequest(ResourceKey<Level> dim, long packedChunkPos, long nowNs) {
     }
 
-    public void recordReady(RegistryKey<World> dim, long packedChunkPos, long nowNs) {
+    public void recordReady(ResourceKey<Level> dim, long packedChunkPos, long nowNs) {
     }
 
     public static final class Snapshot {

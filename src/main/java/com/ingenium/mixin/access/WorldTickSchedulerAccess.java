@@ -1,6 +1,6 @@
 package com.ingenium.mixin.access;
 
-import net.minecraft.world.tick.WorldTickScheduler;
+import net.minecraft.world.ticks.LevelTicks;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
@@ -28,9 +28,9 @@ public final class WorldTickSchedulerAccess {
 
         for (String name : candidates) {
             try {
-                Field f = WorldTickScheduler.class.getDeclaredField(name);
+                Field f = LevelTicks.class.getDeclaredField(name);
                 f.setAccessible(true);
-                ID_HANDLE = MethodHandles.privateLookupIn(WorldTickScheduler.class, MethodHandles.lookup())
+                ID_HANDLE = MethodHandles.privateLookupIn(LevelTicks.class, MethodHandles.lookup())
                         .unreflectVarHandle(f);
                 return;
             } catch (Throwable ignored) {
@@ -41,7 +41,7 @@ public final class WorldTickSchedulerAccess {
     }
 
     /** Returns -1 if not accessible on this version/mappings. */
-    public static long tryGetNextId(WorldTickScheduler<?> scheduler) {
+    public static long tryGetNextId(LevelTicks<?> scheduler) {
         init();
         if (ID_HANDLE == null) return -1L;
 
@@ -52,7 +52,7 @@ public final class WorldTickSchedulerAccess {
     }
 
     /** Sets the next ID if accessible. */
-    public static void trySetNextId(WorldTickScheduler<?> scheduler, long value) {
+    public static void trySetNextId(LevelTicks<?> scheduler, long value) {
         init();
         if (ID_HANDLE == null) return;
 

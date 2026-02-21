@@ -3,7 +3,7 @@ package com.ingenium.mixin;
 import com.ingenium.benchmark.IngeniumDiagnostics;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
-import net.minecraft.server.world.ServerChunkManager;
+import net.minecraft.server.level.ServerChunkCache;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 
@@ -12,7 +12,7 @@ import java.util.concurrent.CompletableFuture;
 /**
  * Tracks main-thread wait time in chunk pipeline by wrapping CompletableFuture.join().
  */
-@Mixin(ServerChunkManager.class)
+@Mixin(ServerChunkCache.class)
 public abstract class ChunkWaitTimeMixin {
 
     @WrapOperation(

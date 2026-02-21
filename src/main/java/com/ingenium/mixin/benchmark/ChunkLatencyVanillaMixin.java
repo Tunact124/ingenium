@@ -1,12 +1,12 @@
 package com.ingenium.mixin.benchmark;
 
 import com.ingenium.benchmark.IngeniumBenchmarkService;
-import net.minecraft.server.world.ServerChunkManager;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.math.ChunkPos;
-import net.minecraft.world.chunk.Chunk;
-import net.minecraft.world.chunk.ChunkStatus;
-import net.minecraft.world.chunk.WorldChunk;
+import net.minecraft.server.level.ServerChunkCache;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.chunk.ChunkStatus;
+import net.minecraft.world.level.chunk.LevelChunk;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -17,43 +17,43 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  * - recordRequest: when getChunk(...) is called with create=true (request path)
  * - recordReady: when getWorldChunk(...) returns non-null (ready-to-use)
  */
-@Mixin(ServerChunkManager.class)
+@Mixin(ServerChunkCache.class)
 public abstract class ChunkLatencyVanillaMixin {
 
     @Inject(
-            method = "getChunk(IILnet/minecraft/world/chunk/ChunkStatus;Z)Lnet/minecraft/world/chunk/Chunk;",
+            method = "getChunk(IILnet/minecraft/world/level/chunk/ChunkStatus;Z)Lnet/minecraft/world/level/chunk/ChunkAccess;",
             at = @At("HEAD")
     )
     private void ingenium$recordRequest(int chunkX, int chunkZ,
                                         ChunkStatus status,
                                         boolean create,
-                                        CallbackInfoReturnable<Chunk> cir) {
+                                        CallbackInfoReturnable<ChunkAccess> cir) {
         if (!create) return;
-        ServerChunkManager scm = (ServerChunkManager) (Object) this;
+        ServerChunkCache scm = (ServerChunkCache) (Object) this;
         IngeniumBenchmarkService svc = IngeniumBenchmarkService.get();
-        ServerWorld world = svc.getBoundWorldForChunkManager(scm);
+        ServerLevel world = svc.getBoundWorldForChunkManager(scm);
         if (world == null) return;
 
         long now = System.nanoTime();
-        long packed = ChunkPos.toLong(chunkX, chunkZ);
-        svc.getChunkLatency().recordRequest(world.getRegistryKey(), packed, now);
+        long packed = ChunkPos.asLong(chunkX, chunkZ);
+        svc.getChunkLatency().recordRequest(world.dimension(), packed, now);
     }
 
     @Inject(
-            method = "getWorldChunk(II)Lnet/minecraft/world/chunk/WorldChunk;",
+            method = "getChunkNow(II)Lnet/minecraft/world/level/chunk/LevelChunk;",
             at = @At("RETURN")
     )
     private void ingenium$recordReady(int chunkX, int chunkZ,
-                                      CallbackInfoReturnable<WorldChunk> cir) {
+                                      CallbackInfoReturnable<LevelChunk> cir) {
         if (cir.getReturnValue() == null) return;
-        ServerChunkManager scm = (ServerChunkManager) (Object) this;
+        ServerChunkCache scm = (ServerChunkCache) (Object) this;
 
         IngeniumBenchmarkService svc = IngeniumBenchmarkService.get();
-        ServerWorld world = svc.getBoundWorldForChunkManager(scm);
+        ServerLevel world = svc.getBoundWorldForChunkManager(scm);
         if (world == null) return;
 
         long now = System.nanoTime();
-        long packed = ChunkPos.toLong(chunkX, chunkZ);
-        svc.getChunkLatency().recordReady(world.getRegistryKey(), packed, now);
+        long packed = ChunkPos.asLong(chunkX, chunkZ);
+        svc.getChunkLatency().recordReady(world.dimension(), packed, now);
     }
 }

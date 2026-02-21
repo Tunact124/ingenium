@@ -3,9 +3,9 @@ package com.ingenium.be;
 import com.ingenium.config.IngeniumConfig;
 import com.ingenium.core.IngeniumGovernor;
 import com.ingenium.offheap.IBeMetadataStore;
-import net.minecraft.block.entity.BlockEntity;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.core.BlockPos;
 
 /**
  * Glue layer between Minecraft BE ticking and the core throttle policy.
@@ -29,10 +29,10 @@ public final class BlockEntityThrottleService {
      * @param pos be position
      * @return true if tick should proceed
      */
-    public boolean shouldTick(ServerWorld world, BlockEntity be, BlockPos pos) {
+    public boolean shouldTick(ServerLevel world, BlockEntity be, BlockPos pos) {
         if (!IngeniumConfig.get().throttleBlockEntities()) return true;
 
-        final long time = world.getTime();
+        final long time = world.getGameTime();
 
         // Identify record by packed pos key (stable)
         final long key = pos.asLong();
@@ -67,10 +67,10 @@ public final class BlockEntityThrottleService {
         return new BlockEntityThrottleService(com.ingenium.offheap.BeMetadataStores.createDefault(capacity));
     }
 
-    private static int computeNearestPlayerDistSq(ServerWorld world, BlockPos pos) {
+    private static int computeNearestPlayerDistSq(ServerLevel world, BlockPos pos) {
         // Keep it simple & safe: iterate players; no allocations.
         int best = Integer.MAX_VALUE;
-        var players = world.getPlayers();
+        var players = world.players();
         for (int i = 0; i < players.size(); i++) {
             var p = players.get(i);
             int dx = p.getBlockX() - pos.getX();

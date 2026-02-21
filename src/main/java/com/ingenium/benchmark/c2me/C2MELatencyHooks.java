@@ -1,8 +1,8 @@
 package com.ingenium.benchmark.c2me;
 
 import com.ingenium.benchmark.IngeniumBenchmarkService;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.math.ChunkPos;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.ChunkPos;
 
 /**
  * Best-effort C2ME readiness hook.
@@ -35,10 +35,10 @@ public final class C2MELatencyHooks {
     /**
      * Called by a C2ME mixin (optional) or by a reflective callback if you find one.
      */
-    public static void onChunkTrulyReady(ServerWorld world, int chunkX, int chunkZ) {
+    public static void onChunkTrulyReady(ServerLevel world, int chunkX, int chunkZ) {
         long now = System.nanoTime();
-        long packed = ChunkPos.toLong(chunkX, chunkZ);
-        IngeniumBenchmarkService.get().getChunkLatency().recordReady(world.getRegistryKey(), packed, now);
+        long packed = ChunkPos.asLong(chunkX, chunkZ);
+        IngeniumBenchmarkService.get().getChunkLatency().recordReady(world.dimension(), packed, now);
     }
 
     private C2MELatencyHooks() {}

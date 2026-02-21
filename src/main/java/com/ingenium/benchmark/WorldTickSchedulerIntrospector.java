@@ -1,6 +1,6 @@
 package com.ingenium.benchmark;
 
-import net.minecraft.world.tick.WorldTickScheduler;
+import net.minecraft.world.ticks.LevelTicks;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -17,7 +17,7 @@ public final class WorldTickSchedulerIntrospector {
     private WorldTickSchedulerIntrospector() {
     }
 
-    public static long tryGetNextId(WorldTickScheduler<?> scheduler) {
+    public static long tryGetNextId(LevelTicks<?> scheduler) {
         if (scheduler == null) {
             return -1L;
         }

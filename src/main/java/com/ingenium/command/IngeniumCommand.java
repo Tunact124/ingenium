@@ -6,12 +6,12 @@ import com.ingenium.core.IngeniumGovernor;
 import com.ingenium.core.IngeniumGovernor.SubsystemType;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
-import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.network.chat.Component;
+import net.minecraft.ChatFormatting;
 
-import static net.minecraft.server.command.CommandManager.literal;
+import static net.minecraft.commands.Commands.literal;
 
 /**
  * Registers /ingenium commands.
@@ -32,45 +32,44 @@ public final class IngeniumCommand {
      *
      * @param dispatcher brigadier dispatcher
      */
-    public static void register(CommandDispatcher<ServerCommandSource> dispatcher) {
+    public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         dispatcher.register(literal("ingenium")
-                .requires(src -> src.hasPermissionLevel(2))
+                .requires(src -> src.hasPermission(2))
                 .then(literal("status").executes(IngeniumCommand::status))
                 .then(literal("bench").executes(IngeniumCommand::bench))
                 .then(literal("ping").executes(ctx -> {
-                    ctx.getSource().sendFeedback(() -> Text.literal("Ingenium: pong"), false);
+                    ctx.getSource().sendSuccess(() -> Component.literal("Ingenium: pong"), false);
                     return 1;
                 }))
         );
     }
 
-    private static int bench(CommandContext<ServerCommandSource> ctx) {
-        ServerPlayerEntity player = ctx.getSource().getPlayer(); // null if console
-        IngeniumBenchmarkService.getInstance().startBenchmark(player);
+    private static int bench(CommandContext<CommandSourceStack> ctx) {
+        ServerPlayer player = ctx.getSource().getPlayer(); // null if console
+        IngeniumBenchmarkService.get().run(player);
         return 1;
     }
 
-    private static int status(CommandContext<ServerCommandSource> ctx) {
-        final var gov = IngeniumGovernor.getInstance();
+    private static int status(CommandContext<CommandSourceStack> ctx) {
+        final var gov = IngeniumGovernor.get();
         final var src = ctx.getSource();
 
-        src.sendMessage(Text.literal("=== Ingenium Status ===").formatted(Formatting.GOLD));
-        src.sendMessage(Text.literal("Master enabled: " + IngeniumConfig.get().masterEnabled).formatted(Formatting.GRAY));
-        src.sendMessage(Text.literal("Profile: " + gov.getCurrentProfile()).formatted(Formatting.GRAY));
-        src.sendMessage(Text.literal("MSPT: " + gov.getCurrentMspt() + " ms").formatted(Formatting.GRAY));
-        src.sendMessage(Text.literal("Bypass: " + gov.isBypassed()).formatted(Formatting.GRAY));
+        src.sendSystemMessage(Component.literal("=== Ingenium Status ===").withStyle(ChatFormatting.GOLD));
+        src.sendSystemMessage(Component.literal("Master enabled: " + IngeniumConfig.get().masterEnabled).withStyle(ChatFormatting.GRAY));
+        src.sendSystemMessage(Component.literal("Profile: " + gov.getCurrentProfile()).withStyle(ChatFormatting.GRAY));
+        src.sendSystemMessage(Component.literal("MSPT: " + gov.getCurrentMspt() + " ms").withStyle(ChatFormatting.GRAY));
+        src.sendSystemMessage(Component.literal("Bypass: " + gov.isBypassed()).withStyle(ChatFormatting.GRAY));
 
-        src.sendMessage(Text.literal("Subsystem budgets (remaining ns):").formatted(Formatting.AQUA));
+        src.sendSystemMessage(Component.literal("Subsystem budgets (remaining ns):").withStyle(ChatFormatting.AQUA));
         for (SubsystemType t : SubsystemType.values()) {
-            // Architect: Verify these methods exist in your Governor implementation.
             long remaining = gov.getRemainingBudgetNs(t);
-            src.sendMessage(Text.literal("  " + t.name() + ": " + remaining + " ns").formatted(Formatting.GRAY));
+            src.sendSystemMessage(Component.literal("  " + t.name() + ": " + remaining + " ns").withStyle(ChatFormatting.GRAY));
         }
 
-        src.sendMessage(Text.literal("Subsystem time share (accumulated ns):").formatted(Formatting.AQUA));
+        src.sendSystemMessage(Component.literal("Subsystem time share (accumulated ns):").withStyle(ChatFormatting.AQUA));
         for (SubsystemType t : SubsystemType.values()) {
             long ns = gov.getSubsystemTimeNs(t);
-            src.sendMessage(Text.literal("  " + t.name() + ": " + ns + " ns").formatted(Formatting.DARK_GRAY));
+            src.sendSystemMessage(Component.literal("  " + t.name() + ": " + ns + " ns").withStyle(ChatFormatting.DARK_GRAY));
         }
 
         return 1;

@@ -1,324 +1,122 @@
-# Ingenium Optimization
+# Ingenium
 
-**The World's First Adaptive Performance Intelligence System for Minecraft**
+Ingenium is an **Adaptive Performance Intelligence System** for **Minecraft 1.20.1 (Fabric)**, designed to keep servers stable at **20 TPS (50ms MSPT)** by dynamically adjusting optimization strategies based on real-time load.
 
-[![Fabric](https://img.shields.io/badge/modloader-Fabric-1976d2)](https://fabricmc.net/)
-[![Minecraft](https://img.shields.io/badge/minecraft-1.20.1-62b47a)](https://minecraft.net/)
-[![License](https://img.shields.io/badge/license-LGPL--3.0-blue.svg)](LICENSE)
+**This mod is the result of a lot of iteration, profiling, and in-game testing — and it’s made possible thanks to players like you.**
+If you’d like to support development, you can contribute here:
+[Ko-fi: https://ko-fi.com/ingeniummod](https://ko-fi.com/ingeniummod)
 
----
+* * *
 
-## Developer Resources & Mod Structure
+## 📥 Downloads
 
-If you are a developer or an AI agent looking to understand the mod's architecture, please refer to:
-- [MOD_STRUCTURE.md](MOD_STRUCTURE.md) - Comprehensive overview of packages, key components, and code examples.
+### Stable builds
+- Modrinth: <MODRINTH LINK>
+- CurseForge: <CURSEFORGE LINK>
 
----
+### Source / development builds
+- GitHub: https://github.com/Tunact124/ingenium
 
-## What is Ingenium?
+> If you’re testing dev builds, expect rough edges and limited support.
 
-Ingenium is not "another optimization mod." It is the **world's first adaptive performance intelligence system** for Minecraft that learns, adapts, and optimizes in real-time based on your specific hardware, world, and playstyle.
+* * *
 
-Unlike traditional optimization mods that apply static optimizations, Ingenium:
-- **Monitors** server performance in real-time
-- **Analyzes** bottlenecks and resource usage
-- **Adapts** its optimization strategy dynamically
-- **Recovers** gracefully from failures
+## 🖥️ What Ingenium does
 
----
+Ingenium focuses on reducing tick-time spikes and smoothing worst-case behavior under load.
 
-## Design Philosophy: Complement, Don't Compete
+### Core systems
+- **Adaptive Governor**
+  - Tracks MSPT and switches optimization profiles (Aggressive / Balanced / Reactive / Emergency).
+  - Budgets expensive subsystems to prevent runaway tick cost.
 
-Ingenium is designed to **complement** existing optimization mods, not replace them:
+- **Timing Wheel Scheduled Ticks**
+  - Replaces vanilla’s scheduled tick scanning with a timing wheel to reduce overhead in heavy worlds.
+  - Designed to reduce worst-case spikes during large scheduled-tick workloads.
 
-| Mod | What It Does Best | Ingenium's Role |
-|-----|-------------------|-----------------|
-| **Sodium** | Client-side rendering | Defer to Sodium for rendering; focus on logic |
-| **Lithium** | Server tick optimization | Defer to Lithium for entity ticking; focus on spatial queries |
-| **FerriteCore** | Memory optimization | Defer to FerriteCore for blockstates; focus on entity tracking |
-| **Starlight** | Lighting engine | Defer to Starlight; no lighting modifications |
+- **Block Entity Throttling**
+  - Dynamically reduces tick frequency for block entities that are far from players or low-priority.
 
-**When these mods are present, Ingenium automatically disables overlapping optimizations and focuses on gaps they don't cover.**
+- **Off-heap Block Entity Metadata**
+  - Stores select BE metadata off-heap to reduce long-lived heap pressure and GC churn.
 
----
+- **SIMD / Vectorized scans (optional)**
+  - Uses the Java Vector API when available for specific scan-style workloads where it actually helps.
 
-## Key Features
+- **Live diagnostics**
+  - Tracks tick health and internal subsystem cost so you can understand *why* MSPT is rising.
 
-### Core Optimizations (Always Active)
+* * *
 
-#### Spatial Grid - O(k) Entity Queries
-- Replaces vanilla's O(N²) entity queries with O(k) spatial hashing
-- **2-5x faster** entity lookups in populated areas
-- Adaptive cell sizing based on entity density
-- Thread-safe mode for async operations
+## 🖥️ Installation
 
-#### Bounding Box Cache
-- Caches entity bounding boxes to avoid recalculation
-- **~70% reduction** in bounding box calculations
-- Automatic invalidation on entity changes
+1. Install **Fabric Loader** for Minecraft **1.20.1**
+2. Install **Fabric API**
+3. Drop `Ingenium-*.jar` into your `mods` folder
+4. Launch the game and configure via **Mod Menu**
 
-### Adaptive Systems (Experimental, Disabled by Default)
+* * *
 
-#### Adaptive Optimizer
-- Self-tuning optimization levels based on performance
-- Automatically adjusts settings to maintain 20 TPS
-- Four levels: Conservative → Balanced → Aggressive → Emergency
+## ⚙️ Configuration
 
-#### Tick Governor
-- Dynamic tick budget management
-- Throttles non-essential entity ticking when server lags
-- **Never** throttles players, hostile mobs, or tamed entities
+Ingenium integrates with **Mod Menu** (YACL-based config screen).
+Most options include a tooltip describing what they change and an **impact indicator** (Low/Medium/High).
 
-#### Entity LOD (Level of Detail)
-- Distance-based AI complexity reduction
-- Distant passive entities update less frequently
-- Maintains gameplay experience while improving performance
+General guidance:
+- If you’re running a modpack with multiple optimization mods, enable changes gradually.
+- The timing wheel and aggressive throttles can be high-impact in heavily-modded environments.
 
-### Safety Features
+* * *
 
-#### Failure Recovery
-- Automatic fallback to vanilla on any error
-- Feature auto-disable if failure rate exceeds 1%
-- Panic mode for emergency stability
+## 🔁 Compatibility
 
-#### Compatibility Detection
-- Automatically detects Sodium, Lithium, FerriteCore, Starlight
-- Disables conflicting optimizations
-- Logs compatibility status on startup
+Ingenium attempts to be a good citizen around other performance mods and will avoid stepping on systems it detects as incompatible or redundant.
 
----
+That said:
+- Mixins in tick-critical paths are inherently sensitive.
+- If you run into issues, please report them (see below) with logs and a mod list.
 
-## Installation
+* * *
 
-### Requirements
-- Minecraft 1.20.1
-- Fabric Loader ≥0.15.0
-- Fabric API
+## 📬 Reporting issues
 
-### Optional But Recommended
-- **Sodium** - For rendering optimization
-- **Lithium** - For server tick optimization
-- **FerriteCore** - For memory optimization
-- **Starlight** - For lighting optimization
-
-### Download
-Download the latest release from [Modrinth](https://modrinth.com/mod/Ingenium) or [CurseForge](https://curseforge.com/minecraft/mc-mods/Ingenium).
-
-### Installation Steps
-1. Install Fabric Loader for 1.20.1
-2. Put `Ingenium-optimization-X.X.X.jar` in your `mods` folder
-3. Launch Minecraft
-4. Check logs for "Ingenium Optimization" startup message
-
----
-
-## Configuration
-
-### Config File
-Configuration is stored in `config/Ingenium.json`:
-
-```json
-{
-  "enableRenderOptimizations": true,
-  "enableSpatialGrid": true,
-  "spatialGridCellSize": 0,
-  "spatialGridThreading": "SINGLE_THREADED",
-  "enableAdaptiveOptimization": false,
-  "enableTickGovernor": false,
-  "enableEntityLOD": false,
-  "autoDisableOnFailure": true,
-  "failureRateThreshold": 0.01
-}
-```
-
-### In-Game GUI
-If you have **ModMenu** installed, you can configure Ingenium in-game:
-1. Open ModMenu
-2. Find "Ingenium Optimization"
-3. Click the config button
-
-### Key Settings
-
-| Setting | Default | Description |
-|---------|---------|-------------|
-| `enableRenderOptimizations` | `true` | Enable render state caching |
-| `deferToSodium` | `true` | Disable render optimizations if Sodium is present |
-| `enableSpatialGrid` | `true` | Enable O(k) entity queries |
-| `spatialGridCellSize` | `0` | Cell size (0 = adaptive) |
-| `spatialGridThreading` | `SINGLE_THREADED` | `SINGLE_THREADED` (faster) or `ASYNC_SAFE` |
-| `enableAdaptiveOptimization` | `false` | Self-tuning optimizations (experimental) |
-| `enableTickGovernor` | `false` | Dynamic tick throttling (experimental) |
-| `enableEntityLOD` | `false` | Distance-based AI reduction (experimental) |
-
----
-
-## Commands
-
-### `/Ingenium`
-Main command for Ingenium control.
-
-**Subcommands:**
-- `/Ingenium status` - Show performance statistics
-- `/Ingenium config` - Open configuration GUI
-- `/Ingenium panic` - Enable panic mode (disable all optimizations)
-- `/Ingenium debug` - Toggle debug logging
-
----
-
-## Performance Impact
-
-### Expected Improvements
-
-| Scenario | Improvement | Notes |
-|----------|-------------|-------|
-| Entity-heavy worlds | 20-40% | Farms, mob grinders, etc. |
-| Many players | 15-30% | Server with 10+ players |
-| Large worlds | 10-20% | Many loaded chunks |
-| Modpacks | 15-25% | Depends on mod count |
-
-### Benchmarks
-
-**Test Setup:**
-- 1000 entities in a 100-block radius
-- Vanilla: ~8-12 TPS
-- With Ingenium: ~18-20 TPS
-
----
-
-## Troubleshooting
-
-### Mod Crashes on Startup
-1. Check that you have Fabric API installed
-2. Check that Minecraft version matches (1.20.1)
-3. Check logs for "Ingenium" error messages
-
-### Performance Not Improved
-1. Check that optimizations are enabled in config
-2. Check logs for "deferring to" messages (may be disabled due to other mods)
-3. Try enabling experimental features
-
-### Entity Behavior Issues
-1. Enable panic mode: `/Ingenium panic` or `-DIngenium.panic=true`
-2. Report the issue with logs
-
-### Compatibility Issues
-Ingenium is designed to be compatible with most mods. If you encounter issues:
-1. Check if issue persists without Ingenium
-2. Report with full mod list and logs
-
----
-
-## Development
-
-### Building from Source
-```bash
-git clone https://github.com/Ingenium/Ingenium-optimization.git
-cd Ingenium-optimization
-./gradlew build
-```
-
-### Running Tests
-```bash
-./gradlew test
-```
-
-### Project Structure
-```
-Ingenium/
-├── src/main/java/com/Ingenium/
-│   ├── IngeniumMod.java           # Main entry point
-│   ├── config/
-│   │   └── IngeniumConfig.java    # Configuration system
-│   ├── adaptive/
-│   │   ├── PerformanceMonitor.java    # Real-time metrics
-│   │   ├── TickGovernor.java          # Dynamic throttling
-│   │   └── AdaptiveOptimizer.java     # Self-tuning system
-│   ├── logic/
-│   │   ├── SpatialGrid.java       # O(k) spatial hashing
-│   │   └── EntityTracker.java     # Safe entity queries
-│   ├── mixin/
-│   │   ├── EntityMixin.java       # Entity lifecycle
-│   │   ├── MobEntityMixin.java    # AI throttling
-│   │   ├── WorldMixin.java        # Query optimization
-│   │   └── ...
-│   └── gui/
-│       └── IngeniumControlScreen.java  # Config GUI
-└── src/test/java/...              # Unit tests
-```
-
----
-
-## Roadmap
-
-### Phase 1 (Completed)
-- [x] Spatial grid system
-- [x] Render state caching
-- [x] Memory compression
-- [x] Basic mixins
-
-### Phase 2 (Current - Alpha)
-- [x] Adaptive optimization system
-- [x] Tick governor
-- [x] Entity LOD
-- [x] Failure recovery
-- [x] Comprehensive config
-- [x] Unit tests
-- [ ] Automated benchmarks
-- [ ] Compatibility testing (50+ mods)
-
-### Phase 3 (Planned - Beta)
-- [ ] Machine learning-based optimization
-- [ ] Per-world optimization profiles
-- [ ] Server-side only mode
-- [ ] Plugin API for other mods
-
-### Phase 4 (Planned - Release)
-- [ ] 1.20.4+ support
-- [ ] Forge port
-- [ ] Official modpack integration
-
----
-
-## Contributing
-
-We welcome contributions! Please:
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
-
-### Code Style
-- Follow existing code style
-- Add JavaDoc for public methods
-- Keep mixins safe and chainable
-- Test thoroughly
-
----
-
-## License
-
-Ingenium Optimization is licensed under the **LGPL-3.0** license.
-
-See [LICENSE](LICENSE) for full text.
-
----
-
-## Credits
-
-- **JellySquid** - For Sodium and Lithium, which inspired this project
-- **malte0811** - For FerriteCore, demonstrating memory optimization possibilities
-- **Spottedleaf** - For Starlight, showing lighting engine improvements
-- **Fabric Team** - For the amazing modding toolchain
-
----
-
-## Support
-
-- **Discord:** [discord.gg/Ingenium](https://discord.gg/Ingenium)
-- **Issues:** [GitHub Issues](https://github.com/Ingenium/Ingenium-optimization/issues)
-- **Wiki:** [GitHub Wiki](https://github.com/Ingenium/Ingenium-optimization/wiki)
-
----
-
-**Made with ❤️ for the Minecraft community**
+If you’d like to report a bug, crash, or compatibility problem:
+- Open an issue on GitHub: https://github.com/Tunact124/ingenium/issues
+
+Helpful info to include:
+- Minecraft version (1.20.1)
+- Fabric Loader + Fabric API versions
+- Ingenium version
+- Full mod list
+- Latest log (`logs/latest.log`)
+- Reproduction steps (if possible)
+
+* * *
+
+## 🧭 Roadmap / ideas (subject to change)
+
+I’m actively experimenting with additional optimizations and diagnostics.
+
+Planned ideas may include:
+- More robust benchmark & report tooling for before/after comparisons
+- Additional governor-aware budgeting hooks across more subsystems
+- Expanded compatibility layers for popular performance mod stacks
+- Safer runtime toggles / fallbacks for invasive systems
+
+**Note:** Plans can change or be scrapped entirely based on test results, compatibility concerns, or new Minecraft versions — so treat this section as “direction,” not a promise.
+
+* * *
+
+## 🛠️ Building from source
+
+Ingenium uses **Gradle**.
+
+Typical workflow:
+- `./gradlew build`
+
+Build artifacts will be in:
+- `build/libs` (or your configured output directory)
+
+> If your project requires specific Java/Gradle versions, list them here (recommended).
+
+* * *
