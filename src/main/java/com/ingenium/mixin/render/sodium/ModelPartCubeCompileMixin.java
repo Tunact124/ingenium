@@ -1,23 +1,23 @@
 package com.ingenium.mixin.render.sodium;
 
-// import com.ingenium.core.Ingenium;
-// import com.ingenium.render.EntityBackfaceCulling;
-// import com.ingenium.mixin.render.ModelPartCubeAccessor;
-// import com.ingenium.mixin.render.ModelPartPolygonAccessor;
-// import com.ingenium.mixin.render.ModelPartVertexAccessor;
-// import com.mojang.blaze3d.vertex.PoseStack;
-// import com.mojang.blaze3d.vertex.VertexConsumer;
-// import net.minecraft.client.Camera;
-// import net.minecraft.client.Minecraft;
-// import net.minecraft.client.model.geom.ModelPart;
+import com.ingenium.core.Ingenium;
+import com.ingenium.render.EntityBackfaceCulling;
+import com.ingenium.mixin.render.ModelPartCubeAccessor;
+import com.ingenium.mixin.render.ModelPartPolygonAccessor;
+import com.ingenium.mixin.render.ModelPartVertexAccessor;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import net.minecraft.client.Camera;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.model.geom.ModelPart;
 import org.spongepowered.asm.mixin.Mixin;
-// import org.spongepowered.asm.mixin.injection.At;
-// import org.spongepowered.asm.mixin.injection.Inject;
-// import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(targets = "net.minecraft.client.model.geom.ModelPart$Cube")
 public abstract class ModelPartCubeCompileMixin {
-    /*
+
     // Hook: polygon compilation is where ModelPart emits vertices.
     // Culling here avoids per-vertex work for back-facing polygons.
     @Inject(
@@ -95,5 +95,4 @@ public abstract class ModelPartCubeCompileMixin {
             }
         }
     }
-    */
 }

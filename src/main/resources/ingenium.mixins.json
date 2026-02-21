@@ -7,18 +7,25 @@
   "mixins": [
     "ScheduledTickWheelMixin",
     "BlockEntityTickThrottleMixin",
+    "ChunkStampMixin",
+    "ChunkWaitTimeMixin",
+    "benchmark.ChunkLatencyVanillaMixin",
+    "benchmark.ServerWorldChunkManagerBindMixin",
     "world.HopperBlockEntityMixin",
     "entity.ExperienceOrbMixin",
     "world.PoiManagerMixin",
     "entity.ExperienceOrbAccessor",
     "worldgen.NoiseChunkLerpKernelMixin",
-    "worldgen.NoiseChunkNoiseInterpolatorMixin"
+    "worldgen.NoiseChunkNoiseInterpolatorMixin",
+    "access.EntityAccessor"
   ],
   "client": [
     "render.ModelPartCubeAccessor",
     "render.ModelPartPolygonAccessor",
     "render.ModelPartVertexAccessor",
     "render.MinecraftRenderMixin",
+    "render.sodium.ItemRendererMixin",
+    "render.sodium.ModelPartCubeCompileMixin",
     "client.LevelRenderer_BreakingOverlayMixin",
     "client.ParticleEngine_FastFrustumMixin",
     "client.GameRenderer_FrameBoundaryMixin"

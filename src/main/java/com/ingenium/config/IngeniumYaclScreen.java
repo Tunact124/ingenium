@@ -189,7 +189,7 @@ public final class IngeniumYaclScreen {
         return Option.<Boolean>createBuilder()
                 .name(Component.literal(name))
                 .description(OptionDescription.of(Component.literal(description)))
-                .binding(true, getter::getAsBoolean, setter)
+                .binding(true, () -> getter.getAsBoolean(), setter)
                 .controller(BooleanControllerBuilder::create)
                 .build();
     }
@@ -205,7 +205,7 @@ public final class IngeniumYaclScreen {
         return Option.<Integer>createBuilder()
                 .name(Component.literal(name))
                 .description(OptionDescription.of(Component.literal(description)))
-                .binding(min, getter::getAsInt, setter::accept)
+                .binding(min, () -> getter.getAsInt(), setter::accept)
                 .controller(opt -> IntegerFieldControllerBuilder.create(opt).min(min).max(max))
                 .build();
     }

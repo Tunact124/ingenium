@@ -11,9 +11,6 @@ public interface EntityAccessor {
     @Accessor("level")
     Level ingenium_getLevel();
 
-    @Accessor("removed")
-    boolean ingenium_isRemoved();
-
-    @Accessor("boundingBox")
+    @Accessor("bb")
     AABB ingenium_getBoundingBox();
 }

@@ -21,7 +21,7 @@ public final class TimingWheel<T> {
 
     @SuppressWarnings("unchecked")
     public TimingWheel(int wheelBits) {
-        if (wheelBits < 6 || wheelBits > 20) {
+        if (wheelBits < 2 || wheelBits > 20) {
             throw new IllegalArgumentException("wheelBits out of range: " + wheelBits);
         }
         this.wheelBits = wheelBits;
@@ -59,9 +59,21 @@ public final class TimingWheel<T> {
     public int drainDue(long tick, int limit, DrainConsumer<T> consumer) {
         if (limit <= 0) return 0;
 
-        advanceTo(tick);
-        var slot = slotFor(tick);
+        int totalDrained = 0;
+        // If we're behind, catch up one tick at a time to ensure all buckets are processed.
+        // We limit catch-up to avoid extreme stalls on massive time jumps.
+        long maxCatchUp = 1024;
+        long startTick = Math.max(currentTick, tick - maxCatchUp);
 
+        for (long t = startTick + 1; t <= tick && totalDrained < limit; t++) {
+            totalDrained += drainSlot(slotFor(t), t, limit - totalDrained, consumer);
+        }
+
+        currentTick = tick;
+        return totalDrained;
+    }
+
+    private int drainSlot(int slot, long maxTick, int limit, DrainConsumer<T> consumer) {
         var head = buckets[slot];
         if (head == null) return 0;
 
@@ -74,7 +86,7 @@ public final class TimingWheel<T> {
 
             if (node.cancelled) continue;
 
-            if (node.dueTick <= tick && drained < limit) {
+            if (node.dueTick <= maxTick && drained < limit) {
                 consumer.accept(node.payload);
                 drained++;
                 continue;

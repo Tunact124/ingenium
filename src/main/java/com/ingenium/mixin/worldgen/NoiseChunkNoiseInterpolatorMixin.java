@@ -18,23 +18,23 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class NoiseChunkNoiseInterpolatorMixin {
 
     // Corner values (Mojang naming in source)
-    @Shadow private double v000;
-    @Shadow private double v001;
-    @Shadow private double v100;
-    @Shadow private double v101;
-    @Shadow private double v010;
-    @Shadow private double v011;
-    @Shadow private double v110;
-    @Shadow private double v111;
+    @Shadow private double noise000;
+    @Shadow private double noise001;
+    @Shadow private double noise100;
+    @Shadow private double noise101;
+    @Shadow private double noise010;
+    @Shadow private double noise011;
+    @Shadow private double noise110;
+    @Shadow private double noise111;
 
     // Intermediate lerp values
-    @Shadow private double v00;
-    @Shadow private double v10;
-    @Shadow private double v01;
-    @Shadow private double v11;
+    @Shadow private double valueXZ00;
+    @Shadow private double valueXZ10;
+    @Shadow private double valueXZ01;
+    @Shadow private double valueXZ11;
 
-    @Shadow private double v0;
-    @Shadow private double v1;
+    @Shadow private double valueZ0;
+    @Shadow private double valueZ1;
 
     @Shadow private double value;
 
@@ -52,26 +52,26 @@ public abstract class NoiseChunkNoiseInterpolatorMixin {
     private void ingenium$updateForY(double delta, CallbackInfo ci) {
         // Fast scalar fallback (still FMA-lerp, just not SIMD)
         if (!VectorGuard.SIMD_AVAILABLE) {
-            this.v00 = Math.fma(delta, this.v001 - this.v000, this.v000);
-            this.v10 = Math.fma(delta, this.v101 - this.v100, this.v100);
-            this.v01 = Math.fma(delta, this.v011 - this.v010, this.v010);
-            this.v11 = Math.fma(delta, this.v111 - this.v110, this.v110);
+            this.valueXZ00 = Math.fma(delta, this.noise010 - this.noise000, this.noise000);
+            this.valueXZ10 = Math.fma(delta, this.noise110 - this.noise100, this.noise100);
+            this.valueXZ01 = Math.fma(delta, this.noise011 - this.noise001, this.noise001);
+            this.valueXZ11 = Math.fma(delta, this.noise111 - this.noise101, this.noise101);
             ci.cancel();
             return;
         }
 
         // SIMD 4-wide lerp
         SimdLerp.lerp4Fma(delta,
-                this.v000, this.v001,
-                this.v100, this.v101,
-                this.v010, this.v011,
-                this.v110, this.v111,
+                this.noise000, this.noise010,
+                this.noise100, this.noise110,
+                this.noise001, this.noise011,
+                this.noise101, this.noise111,
                 this.ingenium$out4);
 
-        this.v00 = this.ingenium$out4.o0;
-        this.v10 = this.ingenium$out4.o1;
-        this.v01 = this.ingenium$out4.o2;
-        this.v11 = this.ingenium$out4.o3;
+        this.valueXZ00 = this.ingenium$out4.o0;
+        this.valueXZ10 = this.ingenium$out4.o1;
+        this.valueXZ01 = this.ingenium$out4.o2;
+        this.valueXZ11 = this.ingenium$out4.o3;
 
         ci.cancel();
     }
@@ -83,8 +83,8 @@ public abstract class NoiseChunkNoiseInterpolatorMixin {
      */
     @Inject(method = "updateForX(D)V", at = @At("HEAD"), cancellable = true)
     private void ingenium$updateForX(double delta, CallbackInfo ci) {
-        this.v0 = Math.fma(delta, this.v10 - this.v00, this.v00);
-        this.v1 = Math.fma(delta, this.v11 - this.v01, this.v01);
+        this.valueZ0 = Math.fma(delta, this.valueXZ10 - this.valueXZ00, this.valueXZ00);
+        this.valueZ1 = Math.fma(delta, this.valueXZ11 - this.valueXZ01, this.valueXZ01);
         ci.cancel();
     }
 
@@ -94,7 +94,7 @@ public abstract class NoiseChunkNoiseInterpolatorMixin {
      */
     @Inject(method = "updateForZ(D)V", at = @At("HEAD"), cancellable = true)
     private void ingenium$updateForZ(double delta, CallbackInfo ci) {
-        this.value = Math.fma(delta, this.v1 - this.v0, this.v0);
+        this.value = Math.fma(delta, this.valueZ1 - this.valueZ0, this.valueZ0);
         ci.cancel();
     }
 }

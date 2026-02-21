@@ -17,6 +17,10 @@ public final class WheelBackedWorldTickScheduler<T> {
         return new WheelBackedWorldTickScheduler<>(new TimingWheel<>(12));
     }
 
+    public WheelBackedWorldTickScheduler(int wheelSize, int resolution, int maxReinserts, int maxCancels) {
+        this(new TimingWheel<>(Integer.numberOfTrailingZeros(wheelSize)));
+    }
+
     private WheelBackedWorldTickScheduler(TimingWheel<T> wheel) {
         this.wheel = wheel;
     }
@@ -27,5 +31,13 @@ public final class WheelBackedWorldTickScheduler<T> {
 
     public int drain(long nowTick, TimingWheel.DrainConsumer<T> consumer) {
         return wheel.drainDue(nowTick, DRAIN_LIMIT_PER_TICK, consumer);
+    }
+
+    public int drainDue(long nowTick, int limit, TimingWheel.DrainConsumer<T> consumer) {
+        return wheel.drainDue(nowTick, limit, consumer);
+    }
+
+    @FunctionalInterface
+    public interface TickConsumer<T> extends TimingWheel.DrainConsumer<T> {
     }
 }

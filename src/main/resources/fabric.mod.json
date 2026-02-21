@@ -18,7 +18,8 @@
   "entrypoints": {
     "main":    ["com.ingenium.core.Ingenium"],
     "client":  ["com.ingenium.client.IngeniumClient"],
-    "modmenu": ["com.ingenium.config.IngeniumModMenu"]
+    "modmenu": ["com.ingenium.config.IngeniumModMenu"],
+    "sodium:config": ["com.ingenium.compat.sodium.IngeniumSodiumConfigEntryPoint"]
   },
   "mixins": ["ingenium.mixins.json"],
   "depends": {

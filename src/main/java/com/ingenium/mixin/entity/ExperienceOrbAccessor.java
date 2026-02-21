@@ -11,4 +11,10 @@ public interface ExperienceOrbAccessor {
 
     @Accessor("value")
     void ingenium_setValue(int value);
+
+    @Accessor("count")
+    int ingenium_getCount();
+
+    @Accessor("count")
+    void ingenium_setCount(int count);
 }
