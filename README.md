@@ -2,11 +2,9 @@
 
 Ingenium is an **Adaptive Performance Intelligence System** for **Minecraft 1.20.1 (Fabric)**, designed to keep servers stable at **20 TPS (50ms MSPT)** by dynamically adjusting optimization strategies based on real-time load.
 
-It provides a robust, high-performance optimization layer that complements existing mods like Sodium and Lithium by focusing on areas they don't cover, using modern Java techniques and hardware-aware logic.
-
 **This mod is the result of a lot of iteration, profiling, and in-game testing — and it’s made possible thanks to players like you.**
 If you’d like to support development, you can contribute here:
-[Ko-fi: https://ko-fi.com/ingeniummod](https://ko-fi.com/ingeniummod)
+(https://ko-fi.com/ingeniummod)
 
 * * *
 
@@ -15,12 +13,6 @@ If you’d like to support development, you can contribute here:
 ### Stable builds
 - Modrinth: <MODRINTH LINK>
 - CurseForge: <CURSEFORGE LINK>
-
-### Source / development builds
-- GitHub: https://github.com/Tunact124/ingenium
-
-> If you’re testing dev builds, expect rough edges and limited support.
-
 * * *
 
 ## 🖥️ Key Systems
@@ -67,17 +59,11 @@ If you’d like to support development, you can contribute here:
 
 ## 🔁 Compatibility & "Buddy Logic"
 
-Ingenium is designed to be a "good citizen" in your modpack. It includes built-in **Buddy Logic** to detect and yield to major optimization mods:
+Ingenium is designed to be a buddy in your modpack. It includes built-in **Buddy Logic** to detect and yield to major optimization mods:
 - **Sodium / Iris**: Integrates with Sodium's config menu and leverages Sodium's rendering API.
 - **Lithium**: Automatically yields domain ownership (like the Timing Wheel) if Lithium is present to avoid conflicts.
 - **Krypton**: Disables network-level pooling when Krypton's superior networking is detected.
 - **C2ME**: Thread-local scratch buffers ensure safety with C2ME's parallel worldgen.
-
-* * *
-
-## 📊 A/B Benchmark Service
-
-Includes a built-in benchmark command (`/ingenium benchmark`) that allows you to validate the mod's impact in your specific environment by running Phase A (Baseline) and Phase B (Ingenium) tests side-by-side.
 
 * * *
 
@@ -94,7 +80,6 @@ Includes a built-in benchmark command (`/ingenium benchmark`) that allows you to
 ## ⚙️ Configuration
 
 Ingenium integrates with **Mod Menu** (YACL-based config screen).
-Most options include a tooltip describing what they change and an **impact indicator** (Low/Medium/High).
 
 * * *
 
@@ -115,11 +100,3 @@ Helpful info to include:
 ## 🛠️ Building from source
 
 Ingenium requires **Java 21** (for the Vector API) and uses **Gradle**.
-
-Typical workflow:
-- `./gradlew build`
-
-Build artifacts will be in:
-- `build/libs`
-
-* * *
