@@ -1,6 +1,6 @@
 package com.ingenium.tick;
 
-import com.ingenium.mixin.access.WorldTickSchedulerAccess;
+import com.ingenium.tick.WorldTickSchedulerAccess;
 import net.minecraft.world.ticks.LevelTicks;
 
 /**

@@ -1,5 +1,7 @@
 package com.ingenium.core;
 
+import com.ingenium.cache.DimensionCacheRegistry;
+import com.ingenium.entity.EntitySpatialBatcher;
 import com.ingenium.metrics.IngeniumMetrics;
 import com.ingenium.core.hw.HardwareProfile;
 import com.ingenium.tick.HopperThrottler;
@@ -17,6 +19,8 @@ public final class IngeniumRuntime {
     private final IngeniumGovernor governor;
     private final HopperThrottler hopperThrottler;
     private final PoiQueryCache poiQueryCache;
+    private final DimensionCacheRegistry dimensionCacheRegistry;
+    private final EntitySpatialBatcher entitySpatialBatcher;
 
     public IngeniumRuntime(EnvType env, IngeniumMetrics metrics, HardwareProfile hardware, IngeniumGovernor governor) {
         this.env = env;
@@ -25,6 +29,8 @@ public final class IngeniumRuntime {
         this.governor = governor;
         this.hopperThrottler = new HopperThrottler();
         this.poiQueryCache = new PoiQueryCache();
+        this.dimensionCacheRegistry = new DimensionCacheRegistry();
+        this.entitySpatialBatcher = new EntitySpatialBatcher();
     }
 
     public EnvType env() {
@@ -49,5 +55,13 @@ public final class IngeniumRuntime {
 
     public PoiQueryCache poiQueryCache() {
         return poiQueryCache;
+    }
+
+    public DimensionCacheRegistry dimensionCacheRegistry() {
+        return dimensionCacheRegistry;
+    }
+
+    public EntitySpatialBatcher entitySpatialBatcher() {
+        return entitySpatialBatcher;
     }
 }

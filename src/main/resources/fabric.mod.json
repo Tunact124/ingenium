@@ -16,38 +16,29 @@
   "icon": "assets/ingenium/icon.png",
   "environment": "*",
   "entrypoints": {
-    "main":    ["com.ingenium.core.Ingenium"],
-    "client":  ["com.ingenium.client.IngeniumClient"],
-    "modmenu": ["com.ingenium.config.IngeniumModMenu"],
+    "main":    ["com.ingenium.core.Ingenium", "toni.sodiumoptionsapi.SodiumOptionsAPI"],
+    "client":  ["com.ingenium.client.IngeniumClient", "toni.sodiumoptionsapi.SodiumOptionsAPI"],
     "sodium:config": ["com.ingenium.compat.sodium.IngeniumSodiumConfigEntryPoint"]
   },
-  "mixins": ["ingenium.mixins.json"],
+  "mixins": [
+    "ingenium.mixins.json",
+    "sodiumoptionsapi.mixins.json"
+  ],
   "depends": {
     "fabricloader":              ">=0.14.21",
     "fabric-api":                "*",
-    "minecraft":                 "1.20.1",
-    "yet_another_config_lib_v3": ">=3.4.0",
-    "modmenu":                   "*"
+    "minecraft":                 "1.20.1"
   },
   "suggests": {
     "sodium": "*",
     "lithium": "*",
     "ferritecore": "*",
     "starlight": "*",
-    "spark": "*",
-    "modmenu": "*"
+    "spark": "*"
   },
   "conflicts": {
     "optifine": "*",
     "optifabric": "*"
-  },
-  "custom": {
-    "modmenu": {
-      "links": {
-        "modmenu.discord": "https://discord.gg/ingenium"
-      },
-      "update_checker": true
-    }
   },
   "breaks": {
     "optifine": "*",

@@ -33,8 +33,8 @@ public final class Ingenium implements ModInitializer {
         try {
             final EnvType env = FabricLoader.getInstance().getEnvironmentType();
 
-            // Section 1.1
-            VectorGuard.init(LOGGER);
+            // Section 1.1 - SIMDCapability initializes itself on first access or class load
+            com.ingenium.compat.BuddyLogic.fullInit();
 
             // Section 2 (hardware assessment)
             HardwareProfile hw = HardwareProbe.probe(LOGGER);
@@ -55,6 +55,9 @@ public final class Ingenium implements ModInitializer {
             CompatibilityRegistry.init();
             SparkIntegration.initSoft();
             IngeniumBenchmarkService.get().init();
+
+            var jit = new com.ingenium.jit.JitEnvironmentDetector();
+            jit.generateRecommendations().forEach(LOGGER::info);
 
             CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, cmdEnv) -> {
                 IngeniumCommand.register(dispatcher);

@@ -6,6 +6,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -123,5 +124,74 @@ public final class OffHeapBlockEntityStore {
 
     private int off(int slot) {
         return (int) slotIndex.get(slot)[1];
+    }
+
+    public Snapshot createSnapshot() {
+        if (!enabled()) return null;
+        
+        // Deep copy of all slabs
+        List<ByteBuffer> snapshotSlabs = new ArrayList<>(slabs.size());
+        for (ByteBuffer slab : slabs) {
+            ByteBuffer copy = ByteBuffer.allocateDirect(slab.capacity()).order(slab.order());
+            ByteBuffer source = slab.duplicate().clear();
+            copy.put(source).flip();
+            snapshotSlabs.add(copy);
+        }
+
+        // Copy metadata
+        return new Snapshot(
+            snapshotSlabs,
+            new ArrayList<>(slotIndex),
+            new ArrayDeque<>(freeSlots),
+            curSlab,
+            nextInSlab,
+            allocated.get(),
+            freed.get()
+        );
+    }
+
+    public void restoreFromSnapshot(Snapshot snapshot) {
+        if (!enabled() || snapshot == null) return;
+
+        // Release current slabs if necessary (though DirectByteBuffer is hard to manually free)
+        this.slabs.clear();
+        for (ByteBuffer slab : snapshot.slabs) {
+            ByteBuffer copy = ByteBuffer.allocateDirect(slab.capacity()).order(slab.order());
+            ByteBuffer source = slab.duplicate().clear();
+            copy.put(source).flip();
+            this.slabs.add(copy);
+        }
+
+        this.slotIndex.clear();
+        this.slotIndex.addAll(snapshot.slotIndex);
+
+        this.freeSlots.clear();
+        this.freeSlots.addAll(snapshot.freeSlots);
+
+        this.curSlab = snapshot.curSlab;
+        this.nextInSlab = snapshot.nextInSlab;
+        this.allocated.set(snapshot.allocated);
+        this.freed.set(snapshot.freed);
+    }
+
+    public record Snapshot(
+        java.util.List<ByteBuffer> slabs,
+        java.util.List<long[]> slotIndex,
+        java.util.ArrayDeque<Integer> freeSlots,
+        int curSlab,
+        int nextInSlab,
+        long allocated,
+        long freed
+    ) {
+        public int entryCount() {
+            return (int) (allocated - freed);
+        }
+
+        public void free() {
+            // JVM handles DirectByteBuffer via Cleaner, but we can clear references
+            slabs.clear();
+            slotIndex.clear();
+            freeSlots.clear();
+        }
     }
 }

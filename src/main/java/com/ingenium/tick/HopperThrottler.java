@@ -2,6 +2,7 @@ package com.ingenium.tick;
 
 import com.ingenium.collections.IngeniumCollections;
 import com.ingenium.collections.LongObjectMap;
+import com.ingenium.core.IngeniumGovernor;
 
 public final class HopperThrottler {
     private static final int DEFAULT_CAPACITY = 16_384;
@@ -13,14 +14,16 @@ public final class HopperThrottler {
         return e != null && gameTime < e.cooldownUntilTick;
     }
 
-    public void cooldown(long hopperPosLong, long cooldownUntilTick) {
-        entries.put(hopperPosLong, new Entry(cooldownUntilTick));
+    public void cooldown(long hopperPosLong, long gameTime) {
+        int divisor = IngeniumGovernor.get().getProfile().beDivisor;
+        if (divisor > 1) {
+            entries.put(hopperPosLong, new Entry(gameTime + divisor));
+        }
     }
 
     public boolean shouldApplyCooldown(long hopperPosLong, long gameTime) {
-        // You can replace this with a stronger signal (e.g., “moved items == false”)
-        // from a deeper wrap of insertAndExtract if you later decide to target that call site.
-        return true;
+        // Apply cooldown if the server is under stress (governor profile > AGGRESSIVE)
+        return IngeniumGovernor.get().getProfile() != IngeniumGovernor.OptimizationProfile.AGGRESSIVE;
     }
 
     private record Entry(long cooldownUntilTick) {}

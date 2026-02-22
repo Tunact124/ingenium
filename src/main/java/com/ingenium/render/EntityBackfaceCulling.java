@@ -6,7 +6,13 @@ import org.joml.Matrix3f;
 import org.joml.Matrix4f;
 
 public final class EntityBackfaceCulling {
+    private static final ThreadLocal<Boolean> SKIP_CULLING = ThreadLocal.withInitial(() -> false);
+
     private EntityBackfaceCulling() {
+    }
+
+    public static void setSkipCulling(boolean skip) {
+        SKIP_CULLING.set(skip);
     }
 
     public static boolean shouldCullPolygon(
@@ -19,6 +25,8 @@ public final class EntityBackfaceCulling {
             float normalY,
             float normalZ
     ) {
+        if (SKIP_CULLING.get()) return false;
+
         Matrix3f normalMatrix = pose.normal();
         float nx = Math.fma(normalMatrix.m00(), normalX, Math.fma(normalMatrix.m01(), normalY, normalMatrix.m02() * normalZ));
         float ny = Math.fma(normalMatrix.m10(), normalX, Math.fma(normalMatrix.m11(), normalY, normalMatrix.m12() * normalZ));

@@ -1,7 +1,7 @@
 package com.ingenium.mixin.worldgen;
 
+import com.ingenium.simd.SIMDCapability;
 import com.ingenium.worldgen.SimdLerp;
-import com.ingenium.worldgen.VectorGuard;
 import net.minecraft.world.level.levelgen.NoiseChunk;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -51,7 +51,7 @@ public abstract class NoiseChunkNoiseInterpolatorMixin {
     @Inject(method = "updateForY(D)V", at = @At("HEAD"), cancellable = true)
     private void ingenium$updateForY(double delta, CallbackInfo ci) {
         // Fast scalar fallback (still FMA-lerp, just not SIMD)
-        if (!VectorGuard.SIMD_AVAILABLE) {
+        if (!SIMDCapability.isAvailable()) {
             this.valueXZ00 = Math.fma(delta, this.noise010 - this.noise000, this.noise000);
             this.valueXZ10 = Math.fma(delta, this.noise110 - this.noise100, this.noise100);
             this.valueXZ01 = Math.fma(delta, this.noise011 - this.noise001, this.noise001);

@@ -15,8 +15,6 @@ repositories {
     maven { url = "https://maven.fabricmc.net/" }
     maven { url = "https://jitpack.io" }
     maven { url = "https://maven.quiltmc.org/repository/release/" }
-    maven { url "https://maven.isxander.dev/releases" }        // YACL — correct URL
-    maven { url "https://maven.terraformersmc.com/releases" }  // ModMenu — correct URL
     maven { url "https://cursemaven.com" }                      // CurseForge
     maven { url "https://maven.caffeinemc.net/" }               // Sodium/Iris
     maven { url "https://api.modrinth.com/maven" }              // Modrinth
@@ -29,15 +27,9 @@ dependencies {
     modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
     
-    // YACL - Yet Another Config Lib
-    modImplementation "dev.isxander:yet-another-config-lib:${project.yacl_version}"
-    include "dev.isxander:yet-another-config-lib:${project.yacl_version}"
-    
-    // ModMenu - standard Fabric mod list integration
-    modImplementation "com.terraformersmc:modmenu:${project.modmenu_version}"
-    
     // Performance Compat (Optional at Runtime)
     modImplementation "maven.modrinth:sodium:mc1.20.1-0.5.11"
+    modImplementation "maven.modrinth:reeses-sodium-options:mc1.20.1-1.7.2"
     // Iris if needed, but the snippet used Sodium API.
 
     // FastUtil - high-performance collections (bundled)
@@ -46,6 +38,9 @@ dependencies {
     // MixinExtras for safe, chainable injections (bundled)
     include(implementation(annotationProcessor(
         "io.github.llamalad7:mixinextras-fabric:${project.mixinextras_version}"
+    )))
+    include(implementation(annotationProcessor(
+        "com.github.bawnorton.mixinsquared:mixinsquared-fabric:0.1.1"
     )))
     
     // Testing dependencies - only JUnit/Mockito, no Minecraft dependencies

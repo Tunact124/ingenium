@@ -6,5 +6,6 @@ public final class IngeniumClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         // Client hooks intentionally minimal until client systems are restored.
+        com.ingenium.compat.sodium.IngeniumSodiumConfig.init();
     }
 }

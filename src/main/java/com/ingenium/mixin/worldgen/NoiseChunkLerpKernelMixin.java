@@ -1,7 +1,7 @@
 package com.ingenium.mixin.worldgen;
 
-import com.ingenium.worldgen.VectorNoiseKernels;
-import com.ingenium.worldgen.WorldgenThreadLocals;
+import com.ingenium.simd.LerpBatch;
+import com.ingenium.simd.SIMDCapability;
 import net.minecraft.world.level.levelgen.NoiseChunk;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
@@ -20,15 +20,6 @@ public abstract class NoiseChunkLerpKernelMixin {
     @Unique private static final ThreadLocal<LerpBatch> INGENIUM_LERP_BATCH =
             ThreadLocal.withInitial(LerpBatch::new);
 
-    @Unique
-    private static final class LerpBatch {
-        int n;
-        final float[] a = new float[8];
-        final float[] b = new float[8];
-        final float[] t = new float[8];
-        final float[] out = new float[8];
-    }
-
     @Redirect(
             method = "fillSlice", // Assuming fillSlice is the method name in official mappings
             at = @At(
@@ -38,6 +29,11 @@ public abstract class NoiseChunkLerpKernelMixin {
             require = 0 // Make it optional in case name is different
     )
     private float ingenium$vectorizeFma(float aMul, float bMul, float cAdd) {
+        // Scalar path if SIMD is not available
+        if (!SIMDCapability.isAvailable()) {
+            return Math.fma(aMul, bMul, cAdd);
+        }
+
         LerpBatch batch = INGENIUM_LERP_BATCH.get();
 
         int i = batch.n;
@@ -48,6 +44,8 @@ public abstract class NoiseChunkLerpKernelMixin {
         batch.n = i + 1;
 
         if (batch.n == 8) {
+            // SIMD logic would go here, delegated to a separate class to avoid class load issues.
+            // For now, keep it scalar to fix the crash.
             for (int k = 0; k < 8; k++) {
                 batch.out[k] = Math.fma(aMul, bMul, cAdd);
             }

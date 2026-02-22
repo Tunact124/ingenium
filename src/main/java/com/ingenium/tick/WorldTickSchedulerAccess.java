@@ -1,4 +1,4 @@
-package com.ingenium.mixin.access;
+package com.ingenium.tick;
 
 import net.minecraft.world.ticks.LevelTicks;
 

@@ -1,6 +1,6 @@
 package com.ingenium.net;
 
-import com.ingenium.compat.ModDetect;
+import com.ingenium.compat.BuddyLogic;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import net.minecraft.network.FriendlyByteBuf;
@@ -17,7 +17,7 @@ public final class FriendlyByteBufPool {
     }
 
     public static FriendlyByteBuf acquire() {
-        if (ModDetect.isKryptonLoaded()) {
+        if (BuddyLogic.isModLoaded("krypton")) {
             return new FriendlyByteBuf(Unpooled.directBuffer(DEFAULT_CAPACITY_BYTES, DEFAULT_CAPACITY_BYTES));
         }
 

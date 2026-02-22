@@ -115,7 +115,7 @@ public final class ItemFastRenderer {
                 float v = Float.intBitsToFloat(vertices[base + 5]);
 
                 int bakedLight = vertices[base + 6];
-                int mergedLight = Math.max(((bakedLight & 0xffff) << 16) | (bakedLight >>> 16), packedLight);
+                int mergedLight = mergeLight(bakedLight, packedLight);
 
                 ModelVertex.write(scratchPtr, xt, yt, zt, finalColor, u, v, packedOverlay, mergedLight, packedNormal);
                 scratchPtr += ModelVertex.STRIDE;
@@ -126,6 +126,14 @@ public final class ItemFastRenderer {
                 }
             }
         }
+    }
+
+    private static int mergeLight(int bakedLight, int packedLight) {
+        int bB = bakedLight & 0xFFFF;
+        int bS = (bakedLight >>> 16) & 0xFFFF;
+        int pB = packedLight & 0xFFFF;
+        int pS = (packedLight >>> 16) & 0xFFFF;
+        return (Math.max(bS, pS) << 16) | Math.max(bB, pB);
     }
 
     private static void flush(VertexBufferWriter writer) {

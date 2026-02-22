@@ -36,6 +36,22 @@ public final class IngeniumGovernor {
     public static final int EXIT_EMERGENCY_TICKS = 200;
     private static final long MODE_CHANGE_COOLDOWN_NANOS = 5_000_000_000L;
 
+    public void restoreFromSnapshot(OptimizationProfile profile, double msptAvg, long stabilityTicks) {
+        this.profile = profile;
+        this.currentMspt.set((long) msptAvg);
+        this.stabilityCounter = (int) stabilityTicks;
+        this.lastModeChangeNanos = System.nanoTime();
+        LOGGER.info("Governor restored from snapshot: profile={}, msptAvg={}", profile, msptAvg);
+    }
+
+    public double getRecentMsptAverage() {
+        return currentMspt.get();
+    }
+
+    public long getProfileStabilityTicks() {
+        return stabilityCounter;
+    }
+
     public static IngeniumGovernor get() {
         return INSTANCE;
     }
@@ -44,8 +60,8 @@ public final class IngeniumGovernor {
     public enum OptimizationProfile {
         AGGRESSIVE(1, 0.95),
         BALANCED(2, 0.75),
-        REACTIVE(3, 0.60),
-        EMERGENCY(6, 0.40);
+        REACTIVE(4, 0.60),
+        EMERGENCY(8, 0.40);
 
         /** Suggested divisor for BE ticking (policy uses this as a base). */
         public final int beDivisor;
@@ -55,6 +71,22 @@ public final class IngeniumGovernor {
         OptimizationProfile(int beDivisor, double budgetMultiplier) {
             this.beDivisor = beDivisor;
             this.budgetMultiplier = budgetMultiplier;
+        }
+
+        public OptimizationProfile oneStepTighter() {
+            return switch (this) {
+                case AGGRESSIVE -> BALANCED;
+                case BALANCED -> REACTIVE;
+                case REACTIVE, EMERGENCY -> EMERGENCY;
+            };
+        }
+
+        public OptimizationProfile oneStepLooser() {
+            return switch (this) {
+                case EMERGENCY -> REACTIVE;
+                case REACTIVE -> BALANCED;
+                case BALANCED, AGGRESSIVE -> AGGRESSIVE;
+            };
         }
     }
 
@@ -68,6 +100,7 @@ public final class IngeniumGovernor {
 
         BLOCK_ENTITY_TICKING,
         RANDOM_TICK_SCANNER_SIMD,
+        CHUNK_SCHEDULING,
         RANDOM_TICK_SCANNER_SCALAR,
 
         CHUNK_IO,
@@ -133,6 +166,9 @@ public final class IngeniumGovernor {
     private int remainingItemFastPath;
 
     private final EnumMap<SubsystemType, AtomicLong> subsystemNs = new EnumMap<>(SubsystemType.class);
+
+    private final MsptTrendAnalyzer trendAnalyzer = new MsptTrendAnalyzer();
+    private int preemptiveTightenCooldown = 0;
 
     private IngeniumGovernor() {
         for (SubsystemType s : SubsystemType.values()) {
@@ -229,8 +265,9 @@ public final class IngeniumGovernor {
     public void onTickEnd() {
         final long endNs = System.nanoTime();
         final long dtNs = endNs - tickStartNs.get();
+        final long mspt = dtNs / 1_000_000L;
         lastTickNs.set(dtNs);
-        currentMspt.set(dtNs / 1_000_000L);
+        currentMspt.set(mspt);
 
         // Record to global metrics
         var rt = Ingenium.runtime();
@@ -244,16 +281,38 @@ public final class IngeniumGovernor {
         final IngeniumConfig cfg = this.config;
         if (!manualProfile && cfg != null && cfg.core().governorAutoProfile()) {
             try (SubsystemTimer ignored = time(SubsystemType.CORE_GOVERNOR)) {
-                maybeTransitionProfile(cfg, currentMspt.get());
+                evaluateTrend(mspt);
+                maybeTransitionProfile(cfg, mspt);
             }
         }
 
         // Optional: periodic decay/reset of subsystem time-share to avoid unbounded growth.
         if (server != null) {
             final int period = (cfg != null) ? Math.max(20, cfg.core().timeShareResetPeriodTicks()) : 200;
-            if ((server.getTickCount() % period) == 0) { // Architect: Verify mapping MinecraftServer#getTicks
+            if ((server.getTickCount() % period) == 0) {
                 resetSubsystemTimeShare();
             }
+        }
+    }
+
+    private void evaluateTrend(long currentMspt) {
+        trendAnalyzer.recordSample(currentMspt);
+        
+        if (preemptiveTightenCooldown > 0) {
+            preemptiveTightenCooldown--;
+            return;
+        }
+        
+        MsptTrendAnalyzer.TrendAction action = trendAnalyzer.getRecommendedAction();
+        
+        switch (action) {
+            case PREEMPTIVE_TIGHTEN -> {
+                if (profile != OptimizationProfile.EMERGENCY) {
+                    transitionTo(profile.oneStepTighter());
+                    preemptiveTightenCooldown = 60; // 3 second cooldown
+                }
+            }
+            default -> {}
         }
     }
 
@@ -388,6 +447,10 @@ public final class IngeniumGovernor {
             case REACTIVE -> 500;
             case EMERGENCY -> 250;
         };
+    }
+
+    public long getBudgetForSubsystem(SubsystemType subsystem) {
+        return effectiveBudgetNs(this.config, subsystem);
     }
 
     private long effectiveBudgetNs(IngeniumConfig cfg, SubsystemType subsystem) {

@@ -1,6 +1,6 @@
 package com.ingenium.tick;
 
-import com.ingenium.compat.ModDetect;
+import com.ingenium.compat.BuddyLogic;
 import com.ingenium.core.Ingenium;
 import com.ingenium.ds.TimingWheel;
 
@@ -10,8 +10,7 @@ public final class WheelBackedWorldTickScheduler<T> {
     private final TimingWheel<T> wheel;
 
     public static <T> WheelBackedWorldTickScheduler<T> createOrNullIfLithiumPresent() {
-        if (ModDetect.isLithiumLoaded()) {
-            Ingenium.LOGGER.info("[Ingenium] Lithium detected; disabling Ingenium timing wheel (domain owner).");
+        if (!TimingWheelGuard.isActive()) {
             return null;
         }
         return new WheelBackedWorldTickScheduler<>(new TimingWheel<>(12));

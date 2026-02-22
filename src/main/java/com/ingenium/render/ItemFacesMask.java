@@ -48,9 +48,7 @@ public final class ItemFacesMask {
     }
 
     private static int decideWorld(ItemTransforms transforms, PoseStack.Pose pose) {
-        if (transforms.gui == ItemTransform.NO_TRANSFORM && pose.pose().m32() < FAR_WORLD_DEPTH_THRESHOLD) {
-            return (1 << Direction.NORTH.ordinal()) | (1 << Direction.SOUTH.ordinal());
-        }
+        // Items in world are rendered from all angles, so we shouldn't cull anything
         return ALL_FACES;
     }
 }

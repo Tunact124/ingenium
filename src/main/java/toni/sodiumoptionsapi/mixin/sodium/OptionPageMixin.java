@@ -1,0 +1,83 @@
+package toni.sodiumoptionsapi.mixin.sodium;
+
+import com.google.common.collect.ImmutableList;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.contents.TranslatableContents;
+import net.minecraft.resources.ResourceLocation;
+import org.spongepowered.asm.mixin.*;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import toni.sodiumoptionsapi.SodiumOptionsAPI;
+import toni.sodiumoptionsapi.api.OptionIdentifier;
+import toni.sodiumoptionsapi.api.OptionPageConstruction;
+import toni.sodiumoptionsapi.util.IOptionGroupIdAccessor;
+import toni.sodiumoptionsapi.util.OptionIdGenerator;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import me.jellysquid.mods.sodium.client.gui.options.OptionGroup;
+import me.jellysquid.mods.sodium.client.gui.options.OptionPage;
+
+@Mixin(OptionPage.class)
+public class OptionPageMixin implements IOptionGroupIdAccessor {
+    @Unique
+    private static final OptionIdentifier<Void> sodiumOptionsAPI$DEFAULT_ID = OptionIdentifier.create("sodium", "empty");
+
+    @Unique
+    private OptionIdentifier<Void> sodiumOptionsAPI$id;
+
+    @Mutable
+    @Shadow @Final private ImmutableList<OptionGroup> groups;
+    @Shadow @Final private Component name;
+
+    @Inject(method = "<init>", at = @At(value = "INVOKE", target = "Lcom/google/common/collect/ImmutableList;builder()Lcom/google/common/collect/ImmutableList$Builder;"))
+    public void onInit(Component name, ImmutableList<OptionGroup> groups, CallbackInfo ci) {
+        this.groups = sodiumOptionsAPI$collectExtraGroups(groups);
+        sodiumOptionsAPI$id = sodiumOptionsAPI$tryMakeId(name);
+    }
+
+    @Unique
+    private ImmutableList<OptionGroup> sodiumOptionsAPI$collectExtraGroups(ImmutableList<OptionGroup> groups) {
+        List<OptionGroup> extraGroups = new ArrayList<>();
+        OptionPageConstruction.EVENT.invoker().onPageConstruction(this.sodiumOptionsAPI$id, this.name, extraGroups);
+
+        return extraGroups.isEmpty() ? groups : ImmutableList.<OptionGroup>builder().addAll(groups).addAll(extraGroups).build();
+    }
+
+    @Override
+    public OptionIdentifier<Void> sodiumOptionsAPI$getId() {
+        if (sodiumOptionsAPI$id == null)
+            return sodiumOptionsAPI$DEFAULT_ID;
+
+        return sodiumOptionsAPI$id;
+    }
+    @Override
+    public void sodiumOptionsAPI$setId(OptionIdentifier<Void> id) {
+        sodiumOptionsAPI$id = id;
+    }
+
+    @Override
+    public void sodiumOptionsAPI$setId(ResourceLocation id) {
+        sodiumOptionsAPI$id = OptionIdentifier.create(id);
+    }
+
+    @Unique
+    private static OptionIdentifier<Void> sodiumOptionsAPI$tryMakeId(Component name) {
+        OptionIdentifier<Void> id;
+        if(name.getContents() instanceof TranslatableContents translatableContents) {
+            String key = translatableContents.getKey();
+            id = OptionIdGenerator.generateId(key);
+        } else {
+            id = OptionIdGenerator.generateId(name.getString());
+        }
+        if(id != null) {
+            SodiumOptionsAPI.LOGGER.debug("Guessed ID for legacy OptionPage: '{}': {}", name.getString(), id);
+            return id;
+        } else {
+            SodiumOptionsAPI.LOGGER.warn("Id must be specified in OptionPage: '{}'", name.getString());
+            return sodiumOptionsAPI$DEFAULT_ID;
+        }
+    }
+}

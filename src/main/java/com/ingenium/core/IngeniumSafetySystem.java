@@ -11,4 +11,12 @@ public final class IngeniumSafetySystem {
     public static void reportFailure(String boundary, Throwable throwable) {
         LOGGER.error("Failure at boundary '{}': {}", boundary, throwable.toString(), throwable);
     }
+
+    public static void guard(String boundary, Runnable action) {
+        try {
+            action.run();
+        } catch (Throwable t) {
+            reportFailure(boundary, t);
+        }
+    }
 }
