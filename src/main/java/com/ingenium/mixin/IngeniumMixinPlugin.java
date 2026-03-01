@@ -12,19 +12,14 @@ import java.util.Set;
 public final class IngeniumMixinPlugin implements IMixinConfigPlugin {
 
     private static final java.util.Map<String, String> CONFLICT_MAP = java.util.Map.of(
-        // EfficientHashing @Overwrites Vec3i.hashCode() — same target as ours
-        "com.ingenium.mixin.core.Vec3iHashMixin", "efficient_hashing",
+            // EfficientHashing @Overwrites Vec3i.hashCode() — same target as ours
+            "com.ingenium.mixin.core.Vec3iHashMixin", "efficient_hashing",
 
-        // Lithium replaces WorldTickScheduler — our timing wheel conflicts
-        "com.ingenium.mixin.ScheduledTickWheelMixin", "lithium",
+            // Lithium replaces WorldTickScheduler — our timing wheel conflicts
+            "com.ingenium.mixin.ScheduledTickWheelMixin", "lithium",
 
-        // Noisium worldgen conflict
-        "com.ingenium.mixin.worldgen.NoiseChunkLerpKernelMixin", "noisium",
-        "com.ingenium.mixin.worldgen.NoiseChunkNoiseInterpolatorMixin", "noisium",
-
-        // Clumps XP orb conflict
-        "com.ingenium.mixin.entity.ExperienceOrbMixin", "clumps"
-    );
+            // Clumps XP orb conflict
+            "com.ingenium.mixin.entity.ExperienceOrbMixin", "clumps");
 
     @Override
     public void onLoad(String mixinPackage) {
@@ -49,10 +44,9 @@ public final class IngeniumMixinPlugin implements IMixinConfigPlugin {
         String conflictingMod = CONFLICT_MAP.get(mixinClassName);
         if (conflictingMod != null && BuddyLogic.isModLoaded(conflictingMod)) {
             BuddyLogic.logYield(
-                mixinClassName.substring(mixinClassName.lastIndexOf('.') + 1),
-                conflictingMod,
-                "Mixin excluded to avoid conflict"
-            );
+                    mixinClassName.substring(mixinClassName.lastIndexOf('.') + 1),
+                    conflictingMod,
+                    "Mixin excluded to avoid conflict");
             return false;
         }
 

@@ -1,0 +1,58 @@
+{
+  "mappings": {
+    "me/flashyreese/mods/reeses_sodium_options/mixin/sodium/MixinControlElement": {
+      "Lme/jellysquid/mods/sodium/client/gui/options/control/ControlElement;drawString(Lnet/minecraft/client/gui/DrawContext;Ljava/lang/String;III)V": "Lme/jellysquid/mods/sodium/client/gui/options/control/ControlElement;drawString(Lnet/minecraft/class_332;Ljava/lang/String;III)V",
+      "render": "Lme/jellysquid/mods/sodium/client/gui/options/control/ControlElement;method_25394(Lnet/minecraft/class_332;IIF)V"
+    },
+    "me/flashyreese/mods/reeses_sodium_options/mixin/sodium/MixinFlatButtonWidget": {
+      "Lme/jellysquid/mods/sodium/client/gui/widgets/FlatButtonWidget;drawRect(Lnet/minecraft/client/gui/DrawContext;IIIII)V": "Lme/jellysquid/mods/sodium/client/gui/widgets/FlatButtonWidget;drawRect(Lnet/minecraft/class_332;IIIII)V",
+      "Lme/jellysquid/mods/sodium/client/gui/widgets/FlatButtonWidget;drawString(Lnet/minecraft/client/gui/DrawContext;Lnet/minecraft/text/Text;III)V": "Lme/jellysquid/mods/sodium/client/gui/widgets/FlatButtonWidget;drawString(Lnet/minecraft/class_332;Lnet/minecraft/class_2561;III)V",
+      "render": "Lme/jellysquid/mods/sodium/client/gui/widgets/FlatButtonWidget;method_25394(Lnet/minecraft/class_332;IIF)V"
+    },
+    "me/flashyreese/mods/reeses_sodium_options/mixin/sodium/MixinSliderControlElement": {
+      "Lnet/minecraft/client/util/math/Rect2i;contains(II)Z": "Lnet/minecraft/class_768;method_3318(II)Z",
+      "Lnet/minecraft/client/util/math/Rect2i;getX()I": "Lnet/minecraft/class_768;method_3321()I",
+      "Lnet/minecraft/client/util/math/Rect2i;getY()I": "Lnet/minecraft/class_768;method_3322()I",
+      "mouseClicked": "Lme/jellysquid/mods/sodium/client/gui/options/control/SliderControl$Button;method_25402(DDI)Z",
+      "renderSlider": "Lme/jellysquid/mods/sodium/client/gui/options/control/SliderControl$Button;renderSlider(Lnet/minecraft/class_332;)V",
+      "renderStandaloneValue": "Lme/jellysquid/mods/sodium/client/gui/options/control/SliderControl$Button;renderStandaloneValue(Lnet/minecraft/class_332;)V"
+    },
+    "me/flashyreese/mods/reeses_sodium_options/mixin/sodium/MixinSodiumOptionsGUI": {
+      "init": "Lme/jellysquid/mods/sodium/client/gui/SodiumOptionsGUI;method_25426()V"
+    },
+    "me/flashyreese/mods/reeses_sodium_options/mixin/sodium/MixinTickBoxControlElement": {
+      "Lnet/minecraft/client/util/math/Rect2i;getX()I": "Lnet/minecraft/class_768;method_3321()I",
+      "Lnet/minecraft/client/util/math/Rect2i;getY()I": "Lnet/minecraft/class_768;method_3322()I",
+      "render": "Lme/jellysquid/mods/sodium/client/gui/options/control/TickBoxControl$TickBoxControlElement;method_25394(Lnet/minecraft/class_332;IIF)V"
+    }
+  },
+  "data": {
+    "named:intermediary": {
+      "me/flashyreese/mods/reeses_sodium_options/mixin/sodium/MixinControlElement": {
+        "Lme/jellysquid/mods/sodium/client/gui/options/control/ControlElement;drawString(Lnet/minecraft/client/gui/DrawContext;Ljava/lang/String;III)V": "Lme/jellysquid/mods/sodium/client/gui/options/control/ControlElement;drawString(Lnet/minecraft/class_332;Ljava/lang/String;III)V",
+        "render": "Lme/jellysquid/mods/sodium/client/gui/options/control/ControlElement;method_25394(Lnet/minecraft/class_332;IIF)V"
+      },
+      "me/flashyreese/mods/reeses_sodium_options/mixin/sodium/MixinFlatButtonWidget": {
+        "Lme/jellysquid/mods/sodium/client/gui/widgets/FlatButtonWidget;drawRect(Lnet/minecraft/client/gui/DrawContext;IIIII)V": "Lme/jellysquid/mods/sodium/client/gui/widgets/FlatButtonWidget;drawRect(Lnet/minecraft/class_332;IIIII)V",
+        "Lme/jellysquid/mods/sodium/client/gui/widgets/FlatButtonWidget;drawString(Lnet/minecraft/client/gui/DrawContext;Lnet/minecraft/text/Text;III)V": "Lme/jellysquid/mods/sodium/client/gui/widgets/FlatButtonWidget;drawString(Lnet/minecraft/class_332;Lnet/minecraft/class_2561;III)V",
+        "render": "Lme/jellysquid/mods/sodium/client/gui/widgets/FlatButtonWidget;method_25394(Lnet/minecraft/class_332;IIF)V"
+      },
+      "me/flashyreese/mods/reeses_sodium_options/mixin/sodium/MixinSliderControlElement": {
+        "Lnet/minecraft/client/util/math/Rect2i;contains(II)Z": "Lnet/minecraft/class_768;method_3318(II)Z",
+        "Lnet/minecraft/client/util/math/Rect2i;getX()I": "Lnet/minecraft/class_768;method_3321()I",
+        "Lnet/minecraft/client/util/math/Rect2i;getY()I": "Lnet/minecraft/class_768;method_3322()I",
+        "mouseClicked": "Lme/jellysquid/mods/sodium/client/gui/options/control/SliderControl$Button;method_25402(DDI)Z",
+        "renderSlider": "Lme/jellysquid/mods/sodium/client/gui/options/control/SliderControl$Button;renderSlider(Lnet/minecraft/class_332;)V",
+        "renderStandaloneValue": "Lme/jellysquid/mods/sodium/client/gui/options/control/SliderControl$Button;renderStandaloneValue(Lnet/minecraft/class_332;)V"
+      },
+      "me/flashyreese/mods/reeses_sodium_options/mixin/sodium/MixinSodiumOptionsGUI": {
+        "init": "Lme/jellysquid/mods/sodium/client/gui/SodiumOptionsGUI;method_25426()V"
+      },
+      "me/flashyreese/mods/reeses_sodium_options/mixin/sodium/MixinTickBoxControlElement": {
+        "Lnet/minecraft/client/util/math/Rect2i;getX()I": "Lnet/minecraft/class_768;method_3321()I",
+        "Lnet/minecraft/client/util/math/Rect2i;getY()I": "Lnet/minecraft/class_768;method_3322()I",
+        "render": "Lme/jellysquid/mods/sodium/client/gui/options/control/TickBoxControl$TickBoxControlElement;method_25394(Lnet/minecraft/class_332;IIF)V"
+      }
+    }
+  }
+}

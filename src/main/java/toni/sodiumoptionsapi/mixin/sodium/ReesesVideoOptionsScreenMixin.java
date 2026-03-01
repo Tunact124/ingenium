@@ -35,16 +35,25 @@ import me.jellysquid.mods.sodium.client.gui.widgets.AbstractWidget;
 import me.jellysquid.mods.sodium.client.util.Dim2i;
 
 @Mixin(SodiumVideoOptionsScreen.class)
-public class ReesesVideoOptionsScreenMixin  {
+public class ReesesVideoOptionsScreenMixin {
 
-    @Shadow @Final private static AtomicReference<Integer> tabFrameScrollBarOffset;
-    @Shadow @Final private static AtomicReference<Integer> optionPageScrollBarOffset;
+    @Shadow
+    @Final
+    private static AtomicReference<Integer> tabFrameScrollBarOffset;
+    @Shadow
+    @Final
+    private static AtomicReference<Integer> optionPageScrollBarOffset;
 
-    @Shadow @Final private List<OptionPage> pages;
-    @Shadow @Final private static AtomicReference<Component> tabFrameSelectedTab;
+    @Shadow
+    @Final
+    private List<OptionPage> pages;
+    @Shadow
+    @Final
+    private static AtomicReference<Component> tabFrameSelectedTab;
 
-    @Redirect(method = "parentBasicFrameBuilder", at = @At(value = "INVOKE", ordinal = 0, target = "Lme/flashyreese/mods/reeses_sodium_options/client/gui/frame/BasicFrame$Builder;addChild(Ljava/util/function/Function;)Lme/flashyreese/mods/reeses_sodium_options/client/gui/frame/BasicFrame$Builder;"), remap = false)
-    private BasicFrame.Builder tabFrameBuilder(BasicFrame.Builder instance, Function<Dim2i, AbstractWidget> function, @Local(ordinal = 1, argsOnly = true) Dim2i tabFrameDim) {
+    @Redirect(method = "parentBasicFrameBuilder", at = @At(value = "INVOKE", ordinal = 2, target = "Lme/flashyreese/mods/reeses_sodium_options/client/gui/frame/BasicFrame$Builder;addChild(Ljava/util/function/Function;)Lme/flashyreese/mods/reeses_sodium_options/client/gui/frame/BasicFrame$Builder;"), remap = false)
+    private BasicFrame.Builder tabFrameBuilder(BasicFrame.Builder instance, Function<Dim2i, AbstractWidget> function,
+            @Local(ordinal = 1, argsOnly = true) Dim2i tabFrameDim) {
         instance.addChild((parentDim) -> SodiumOptionsTabFrame.createBuilder()
                 .setDimension(tabFrameDim)
                 .shouldRenderOutline(false)
@@ -53,12 +62,14 @@ public class ReesesVideoOptionsScreenMixin  {
                 .addTabs(tabs -> this.pages
                         .stream()
                         .filter(this::sodiumOptionsAPI$isSodiumTab)
-                        .forEach(page -> tabs.put(((IOptionGroupIdAccessor)page).sodiumOptionsAPI$getId().getModId(), Tab.createBuilder().from(page, optionPageScrollBarOffset)))                )
+                        .forEach(page -> tabs.put(((IOptionGroupIdAccessor) page).sodiumOptionsAPI$getId().getModId(),
+                                Tab.createBuilder().from(page, optionPageScrollBarOffset))))
                 .addTabs(this::sodiumOptionsAPI$createShaderPackButton)
                 .addTabs(tabs -> this.pages
                         .stream()
                         .filter((tab) -> !sodiumOptionsAPI$isSodiumTab(tab))
-                        .forEach(page -> tabs.put(((IOptionGroupIdAccessor)page).sodiumOptionsAPI$getId().getModId(), Tab.createBuilder().from(page, optionPageScrollBarOffset)))                )
+                        .forEach(page -> tabs.put(((IOptionGroupIdAccessor) page).sodiumOptionsAPI$getId().getModId(),
+                                Tab.createBuilder().from(page, optionPageScrollBarOffset))))
                 .onSetTab(() -> {
                     optionPageScrollBarOffset.set(0);
                 })
@@ -69,10 +80,13 @@ public class ReesesVideoOptionsScreenMixin  {
 
     @Unique
     private boolean sodiumOptionsAPI$isSodiumTab(OptionPage optionPage) {
-        if (optionPage.getName().getString().equals("Shader Packs...") || optionPage.getName().getString().equals("Oculus"))
+        if (optionPage.getName().getString().equals("Shader Packs...")
+                || optionPage.getName().getString().equals("Oculus"))
             return false;
 
-        return Objects.equals(((IOptionGroupIdAccessor) optionPage).sodiumOptionsAPI$getId().getModId(), "sodium") || Objects.equals(((IOptionGroupIdAccessor) optionPage).sodiumOptionsAPI$getId().getModId(), "embeddium");
+        return Objects.equals(((IOptionGroupIdAccessor) optionPage).sodiumOptionsAPI$getId().getModId(), "sodium")
+                || Objects.equals(((IOptionGroupIdAccessor) optionPage).sodiumOptionsAPI$getId().getModId(),
+                        "embeddium");
     }
 
     @Unique
@@ -80,7 +94,8 @@ public class ReesesVideoOptionsScreenMixin  {
         var iris = IrisCompat.isIrisPresent();
 
         if (iris) {
-            String shaderModId = (String) Stream.of("oculus", "iris").filter(PlatformUtil::modPresent).findFirst().orElse("iris");
+            String shaderModId = (String) Stream.of("oculus", "iris").filter(PlatformUtil::modPresent).findFirst()
+                    .orElse("iris");
 
             var builder = Tab.createBuilder()
                     .setTitle(Component.translatable("options.iris.shaderPackSelection"))
@@ -92,7 +107,8 @@ public class ReesesVideoOptionsScreenMixin  {
     }
 
     @Unique
-    private <T extends me.flashyreese.mods.reeses_sodium_options.client.gui.frame.AbstractFrame> T sodiumOptionsAPI$getFrame(Dim2i dim) {
-        return (T) new BasicFrame(dim, false, new ArrayList());
+    private <T extends me.flashyreese.mods.reeses_sodium_options.client.gui.frame.AbstractFrame> T sodiumOptionsAPI$getFrame(
+            Dim2i dim) {
+        return (T) new BasicFrame(dim, false, new ArrayList<>());
     }
 }

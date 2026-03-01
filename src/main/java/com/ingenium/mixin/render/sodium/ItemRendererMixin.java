@@ -1,6 +1,7 @@
 package com.ingenium.mixin.render.sodium;
 
 import com.ingenium.core.Ingenium;
+import com.ingenium.core.IngeniumSafetySystem;
 import com.ingenium.render.ItemFacesMask;
 import com.ingenium.render.ItemFastRenderer;
 import com.ingenium.render.PlaceholderModels;
@@ -22,50 +23,60 @@ import org.spongepowered.asm.mixin.injection.ModifyArg;
 
 @Mixin(value = ItemRenderer.class, priority = 100)
 public abstract class ItemRendererMixin {
-    @Shadow @Final private ItemColors itemColors;
+        @Shadow
+        @Final
+        private ItemColors itemColors;
 
-    @ModifyArg(
-            method = "render",
-            at = @At(
-                    value = "INVOKE",
-                    target = "Lnet/minecraft/client/renderer/entity/ItemRenderer;renderModelLists(Lnet/minecraft/client/resources/model/BakedModel;Lnet/minecraft/world/item/ItemStack;IILcom/mojang/blaze3d/vertex/PoseStack;Lcom/mojang/blaze3d/vertex/VertexConsumer;)V"
-            )
-    )
-    private BakedModel ingenium_onRenderModelLists(
-            BakedModel model,
-            ItemStack stack,
-            int light,
-            int overlay,
-            PoseStack poseStack,
-            VertexConsumer vertexConsumer,
-            @Local(ordinal = 0) BakedModel originalModel,
-            @Local ItemDisplayContext itemDisplayContext
-    ) {
-        var runtime = Ingenium.runtime();
-        if (runtime == null) return model;
+        // By modifying the BakedModel argument of renderModelLists to act as a dummy,
+        // we prevent Vanilla from
+        // rendering the model while injecting our custom high-performance
+        // ItemFastRenderer instead.
+        @ModifyArg(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/entity/ItemRenderer;renderModelLists(Lnet/minecraft/client/resources/model/BakedModel;Lnet/minecraft/world/item/ItemStack;IILcom/mojang/blaze3d/vertex/PoseStack;Lcom/mojang/blaze3d/vertex/VertexConsumer;)V"))
+        private BakedModel ingenium_onRenderModelLists(
+                        BakedModel model,
+                        ItemStack stack,
+                        int light,
+                        int overlay,
+                        PoseStack poseStack,
+                        VertexConsumer vertexConsumer,
+                        @Local(ordinal = 0) BakedModel originalModel,
+                        @Local ItemDisplayContext itemDisplayContext) {
+                final var runtime = Ingenium.runtime();
+                if (runtime == null)
+                        return model;
 
-        var governor = runtime.governor();
-        if (governor == null || !governor.allow(com.ingenium.core.IngeniumGovernor.SubsystemType.ITEM_FAST_PATH)) return model;
+                final var governor = runtime.governor();
+                if (governor == null
+                                || !governor.allow(com.ingenium.core.IngeniumGovernor.SubsystemType.ITEM_FAST_PATH))
+                        return model;
 
-        if (!(originalModel instanceof SimpleBakedModel originalSimple)) return model;
-        if (!(model instanceof SimpleBakedModel simpleModel)) return model;
+                if (!(originalModel instanceof SimpleBakedModel originalSimple))
+                        return model;
+                if (!(model instanceof SimpleBakedModel simpleModel))
+                        return model;
 
-        var writer = VertexBufferWriter.tryOf(vertexConsumer);
-        if (writer == null) return model;
+                final var writer = VertexBufferWriter.tryOf(vertexConsumer);
+                if (writer == null)
+                        return model;
 
-        var facesMask = ItemFacesMask.decide(originalSimple.getTransforms(), itemDisplayContext, poseStack.last());
+                try {
+                        final int facesMask = ItemFacesMask.decide(originalSimple.getTransforms(), itemDisplayContext,
+                                        poseStack.last());
 
-        ItemFastRenderer.render(
-                simpleModel,
-                facesMask,
-                stack,
-                light,
-                overlay,
-                poseStack,
-                writer,
-                this.itemColors
-        );
+                        ItemFastRenderer.render(
+                                        simpleModel,
+                                        facesMask,
+                                        stack,
+                                        light,
+                                        overlay,
+                                        poseStack,
+                                        writer,
+                                        this.itemColors);
 
-        return PlaceholderModels.DUMMY;
-    }
+                        return PlaceholderModels.DUMMY;
+                } catch (Throwable t) {
+                        IngeniumSafetySystem.reportFailure("ItemFastRenderer", t);
+                        return model;
+                }
+        }
 }

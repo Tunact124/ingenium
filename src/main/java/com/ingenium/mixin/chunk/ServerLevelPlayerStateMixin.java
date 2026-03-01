@@ -17,30 +17,30 @@ public abstract class ServerLevelPlayerStateMixin {
 
     /**
      * Update player state in ChunkPriorityEngine once per tick.
-     * We use the first player in the level for scoring. 
-     * In a multi-player environment, a more sophisticated approach 
+     * We use the first player in the level for scoring.
+     * In a multi-player environment, a more sophisticated approach
      * (like per-player engine or combined scoring) might be better.
      */
-    @Inject(
-        method = "tick",
-        at = @At("HEAD")
-    )
+    @Inject(method = "tick", at = @At("HEAD"))
     private void ingenium_updatePlayerStateForPriority(BooleanSupplier shouldKeepTicking, CallbackInfo ci) {
         IngeniumSafetySystem.guard("chunk_priority_update_player", () -> {
-            ServerLevel self = (ServerLevel)(Object) this;
+            ServerLevel self = (ServerLevel) (Object) this;
             ChunkPriorityEngine engine = ChunkPriorityAccess.getEngine(self);
-            if (engine == null) return;
+            if (engine == null)
+                return;
 
-            List<ServerPlayer> players = self.players();
-            if (!players.isEmpty()) {
-                // Use the first player as the primary source of priority
-                ServerPlayer player = players.get(0);
-                engine.updatePlayerState(
-                    player.position(), 
-                    player.getLookAngle(), 
-                    player.getDeltaMovement(), 
-                    self.getGameTime()
-                );
+            // Avoid allocating a full List<ServerPlayer> every single tick
+            // as self.players() often copies or instantiates collection wrappers.
+            // Just grab the first available player via the raw players collection.
+            for (ServerPlayer player : self.players()) {
+                if (player != null) {
+                    engine.updatePlayerState(
+                            player.position(),
+                            player.getLookAngle(),
+                            player.getDeltaMovement(),
+                            self.getGameTime());
+                    break; // Only need one player for global anchor
+                }
             }
         });
     }

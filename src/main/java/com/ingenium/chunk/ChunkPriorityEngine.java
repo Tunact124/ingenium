@@ -39,10 +39,11 @@ public class ChunkPriorityEngine {
 
     public ChunkPriorityEngine(IngeniumGovernor governor) {
         this.governor = governor;
+        // Optimization: Use primitive float comparison instead of Double.compare
+        // which can box and unbox when chained through Comparator.comparingDouble
         this.priorityQueue = new PriorityQueue<>(
-            256,
-            Comparator.comparingDouble(ScoredChunk::score).reversed()
-        );
+                256,
+                (c1, c2) -> Float.compare(c2.score(), c1.score()));
     }
 
     /**
@@ -78,22 +79,22 @@ public class ChunkPriorityEngine {
 
         while (!priorityQueue.isEmpty()) {
             long elapsed = System.nanoTime() - startNs;
-            if (elapsed >= budgetNs) break;
+            if (elapsed >= budgetNs)
+                break;
 
             ScoredChunk top = priorityQueue.poll();
-            if (top == null) break;
+            if (top == null)
+                break;
 
             // Re-score stale entries — if it's been sitting for a while,
             // its priority may have changed dramatically
             if (currentTick - top.submittedTick() > 20) {
                 float newScore = scoreChunk(
-                    top.section(), top.workType(), top.submittedTick()
-                );
+                        top.section(), top.workType(), top.submittedTick());
                 // If re-scored priority dropped significantly, re-queue
                 if (newScore < top.score() * 0.5f && !priorityQueue.isEmpty()) {
                     priorityQueue.offer(new ScoredChunk(
-                        top.section(), top.workType(), newScore, top.submittedTick()
-                    ));
+                            top.section(), top.workType(), newScore, top.submittedTick()));
                     continue;
                 }
             }
@@ -109,7 +110,7 @@ public class ChunkPriorityEngine {
      * Core scoring function.
      *
      * Score = (direction × W_d) + (proximity × W_p) +
-     *         (velocity_toward × W_v) + (staleness × W_s)
+     * (velocity_toward × W_v) + (staleness × W_s)
      *
      * All components are normalized to [0, 1] before weighting.
      */
@@ -126,44 +127,44 @@ public class ChunkPriorityEngine {
         double distSq = dx * dx + dy * dy + dz * dz;
         double dist = Math.sqrt(distSq);
 
-        if (dist < 0.01) return Float.MAX_VALUE; // Player is inside this chunk
+        if (dist < 0.01)
+            return Float.MAX_VALUE; // Player is inside this chunk
 
         // 1. DIRECTION SCORE: dot product of look vector and chunk direction
-        //    Range: [-1, 1] → normalized to [0, 1]
+        // Range: [-1, 1] → normalized to [0, 1]
         double invDist = 1.0 / dist;
         double dirX = dx * invDist;
         double dirY = dy * invDist;
         double dirZ = dz * invDist;
         double dot = dirX * playerLook.x + dirY * playerLook.y + dirZ * playerLook.z;
-        float directionScore = (float)((dot + 1.0) * 0.5); // [0, 1]
+        float directionScore = (float) ((dot + 1.0) * 0.5); // [0, 1]
 
         // 2. PROXIMITY SCORE: closer chunks score higher
-        //    Use inverse square falloff, capped at render distance
+        // Use inverse square falloff, capped at render distance
         float maxDist = 16.0f * 16.0f; // 16 chunks × 16 blocks
-        float proximityScore = 1.0f - Math.min((float)(distSq / (maxDist * maxDist * 256.0)), 1.0f);
+        float proximityScore = 1.0f - Math.min((float) (distSq / (maxDist * maxDist * 256.0)), 1.0f);
 
         // 3. VELOCITY SCORE: is the player moving toward this chunk?
-        //    dot(velocity, direction_to_chunk)
+        // dot(velocity, direction_to_chunk)
         double velDot = playerVelocity.x * dirX +
-                        playerVelocity.y * dirY +
-                        playerVelocity.z * dirZ;
+                playerVelocity.y * dirY +
+                playerVelocity.z * dirZ;
         float velocityScore = (float) Math.max(0.0, Math.min(velDot / 0.5, 1.0));
 
         // 4. STALENESS SCORE: chunks waiting too long get escalated
-        //    Prevents starvation — even low-priority chunks eventually process
+        // Prevents starvation — even low-priority chunks eventually process
         long waitTicks = currentTick - submittedTick;
         float stalenessScore = Math.min(
-            (float) waitTicks / STALENESS_ESCALATION_TICKS, 1.0f
-        );
+                (float) waitTicks / STALENESS_ESCALATION_TICKS, 1.0f);
 
         // 5. WORK TYPE MULTIPLIER: some operations are more urgent
         float typeMultiplier = workType.urgencyMultiplier();
 
         // Weighted sum
         float score = (directionScore * DIRECTION_WEIGHT) +
-                      (proximityScore * DISTANCE_WEIGHT) +
-                      (velocityScore * VELOCITY_WEIGHT) +
-                      (stalenessScore * STALENESS_WEIGHT);
+                (proximityScore * DISTANCE_WEIGHT) +
+                (velocityScore * VELOCITY_WEIGHT) +
+                (stalenessScore * STALENESS_WEIGHT);
 
         return score * typeMultiplier;
     }
@@ -197,18 +198,18 @@ public class ChunkPriorityEngine {
     // ================================================================
 
     public record ScoredChunk(
-        SectionPos section,
-        ChunkWorkType workType,
-        float score,
-        long submittedTick
-    ) {}
+            SectionPos section,
+            ChunkWorkType workType,
+            float score,
+            long submittedTick) {
+    }
 
     public enum ChunkWorkType {
-        BLOCK_CHANGE(2.0f),       // Player-triggered, highest urgency
-        LIGHT_UPDATE(1.5f),       // Visual artifact if delayed
-        MESH_REBUILD(1.0f),       // Standard rebuild
-        ENTITY_CHANGE(0.8f),      // Entity moved in/out of section
-        SCHEDULED_TICK(0.5f);     // Background maintenance
+        BLOCK_CHANGE(2.0f), // Player-triggered, highest urgency
+        LIGHT_UPDATE(1.5f), // Visual artifact if delayed
+        MESH_REBUILD(1.0f), // Standard rebuild
+        ENTITY_CHANGE(0.8f), // Entity moved in/out of section
+        SCHEDULED_TICK(0.5f); // Background maintenance
 
         private final float urgencyMultiplier;
 

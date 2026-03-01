@@ -16,7 +16,8 @@ import java.util.function.Consumer;
 
 /**
  * Intercepts entity ticking to apply spatial batching.
- * Spatially coherent ticking improves CPU cache locality for collision and interaction checks.
+ * Spatially coherent ticking improves CPU cache locality for collision and
+ * interaction checks.
  */
 @Mixin(ServerLevel.class)
 public abstract class ServerLevelEntityBatchMixin {
@@ -24,28 +25,15 @@ public abstract class ServerLevelEntityBatchMixin {
     /**
      * Redirect the forEach call on the entity tick list to apply spatial batching.
      */
-    @Redirect(
-        method = "tick",
-        at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/entity/EntityTickList;forEach(Ljava/util/function/Consumer;)V")
-    )
+    @Redirect(method = "tick", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/entity/EntityTickList;forEach(Ljava/util/function/Consumer;)V"))
     private void ingenium_batchEntityTicks(EntityTickList instance, Consumer<Entity> action) {
         IngeniumSafetySystem.guard("entity_spatial_batching", () -> {
-            // Collect all entities scheduled for ticking
-            List<Entity> entities = new ArrayList<>();
-            instance.forEach(entities::add);
-            
-            if (entities.isEmpty()) return;
-
-            // Batch entities by spatial locality
+            // Rather than trying to gather ALL entities into a mega-batch (which is O(N)
+            // array allocation and traversal), we just let Vanilla stream them, but we
+            // ask our spatial batcher to process them efficiently without heavy object
+            // creation.
             EntitySpatialBatcher batcher = Ingenium.runtime().entitySpatialBatcher();
-            List<List<Entity>> batches = batcher.batchBySpatialLocality(entities);
-            
-            // Execute ticks batch by batch
-            for (List<Entity> batch : batches) {
-                for (Entity entity : batch) {
-                    action.accept(entity);
-                }
-            }
+            batcher.processSpatially(instance, action);
         });
     }
 }

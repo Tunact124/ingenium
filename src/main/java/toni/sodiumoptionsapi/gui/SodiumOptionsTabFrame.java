@@ -45,30 +45,37 @@ public class SodiumOptionsTabFrame extends AbstractFrame {
 
     private FlatButtonWidget.Style style = getStyle();
 
-    public SodiumOptionsTabFrame(Dim2i dim, boolean renderOutline, Multimap<String, Tab<?>> tabs, Runnable onSetTab, AtomicReference<Component> tabSectionSelectedTab, AtomicReference<Integer> tabSectionScrollBarOffset) {
+    public SodiumOptionsTabFrame(Dim2i dim, boolean renderOutline, Multimap<String, Tab<?>> tabs, Runnable onSetTab,
+            AtomicReference<Component> tabSectionSelectedTab, AtomicReference<Integer> tabSectionScrollBarOffset) {
         super(dim, renderOutline);
         this.tabs = ImmutableListMultimap.copyOf(tabs);
 
         Optional<Integer> result = Stream.concat(
                 tabs.keys().stream().map(id -> this.getStringWidth(TabHeaderWidget.getLabel(id, true)) + 10),
-                tabs.values().stream().map(tab -> this.getStringWidth(tab.title()) + TAB_OPTION_INDENT)
-        ).max(Integer::compareTo);
+                tabs.values().stream().map(tab -> this.getStringWidth(tab.title()) + TAB_OPTION_INDENT))
+                .max(Integer::compareTo);
 
-        this.tabSection = new Dim2i(this.dim.x(), this.dim.y(), result.map(integer -> integer + (24)).orElseGet(() -> (int) (this.dim.width() * 0.35D)), this.dim.height());
-        this.frameSection = new Dim2i(this.tabSection.getLimitX(), this.dim.y(), this.dim.width() - this.tabSection.width(), this.dim.height());
+        this.tabSection = new Dim2i(this.dim.x(), this.dim.y(),
+                result.map(integer -> integer + (24)).orElseGet(() -> (int) (this.dim.width() * 0.35D)),
+                this.dim.height());
+        this.frameSection = new Dim2i(this.tabSection.getLimitX(), this.dim.y(),
+                this.dim.width() - this.tabSection.width(), this.dim.height());
 
         this.onSetTab = onSetTab;
         this.tabSectionSelectedTab = tabSectionSelectedTab;
         this.tabSectionScrollBarOffset = tabSectionScrollBarOffset;
 
         if (this.tabSectionSelectedTab.get() != null) {
-            this.selectedTab = this.tabs.values().stream().filter(tab -> tab.title().getString().equals(this.tabSectionSelectedTab.get().getString())).findAny().orElse(null);
+            this.selectedTab = this.tabs.values().stream()
+                    .filter(tab -> tab.title().getString().equals(this.tabSectionSelectedTab.get().getString()))
+                    .findAny().orElse(null);
         }
 
         this.buildFrame();
 
         // Let's build each frame, future note for anyone: do not move this line.
-        this.tabs.values().stream().filter(tab -> this.selectedTab != tab).forEach(tab -> tab.getFrameFunction().apply(this.frameSection));
+        this.tabs.values().stream().filter(tab -> this.selectedTab != tab)
+                .forEach(tab -> tab.getFrameFunction().apply(this.frameSection));
     }
 
     public static Builder createBuilder() {
@@ -77,7 +84,7 @@ public class SodiumOptionsTabFrame extends AbstractFrame {
 
     public void setHeader(String header, Tab<?> tab) {
         this.selectedHeader = header;
-        //tabSectionScrollBarOffset.set(0);
+        // tabSectionScrollBarOffset.set(0);
         this.setTab(tab);
     }
 
@@ -123,7 +130,8 @@ public class SodiumOptionsTabFrame extends AbstractFrame {
             for (var modEntry : tabs.asMap().entrySet()) {
                 // Add a "button" as the header
                 var extraHeight = modEntry.getKey().equals("sodium") || modEntry.getKey().equals("embeddium") ? 0 : 4;
-                Dim2i modHeaderDim = withParentOffset(new Dim2i(0, offsetY + extraHeight, width, height), (Point2i) (Object) tabSection);
+                Dim2i modHeaderDim = withParentOffset(new Dim2i(0, offsetY + extraHeight, width, height),
+                        (Point2i) (Object) tabSection);
                 offsetY += height + extraHeight;
 
                 var firstTab = modEntry.getValue().stream().findFirst().orElse(null);
@@ -142,7 +150,8 @@ public class SodiumOptionsTabFrame extends AbstractFrame {
 
                 this.children.add(headerButton);
 
-                if (!(modEntry.getKey().equals("sodium") || modEntry.getKey().equals("embeddium")) && (selectedHeader == null || !selectedHeader.equals(modEntry.getKey())))
+                if (!(modEntry.getKey().equals("sodium") || modEntry.getKey().equals("embeddium"))
+                        && (selectedHeader == null || !selectedHeader.equals(modEntry.getKey())))
                     continue;
 
                 if (modEntry.getValue().size() == 1) {
@@ -152,11 +161,13 @@ public class SodiumOptionsTabFrame extends AbstractFrame {
 
                 for (Tab<?> tab : modEntry.getValue()) {
 
-                    if ((modEntry.getKey().equals("sodium") || modEntry.getKey().equals("embeddium")) && Objects.equals(tab.title().getString(), "Shader Packs..."))
+                    if ((modEntry.getKey().equals("sodium") || modEntry.getKey().equals("embeddium"))
+                            && Objects.equals(tab.title().getString(), "Shader Packs..."))
                         continue;
 
                     // Add the button for the mod itself
-                    Dim2i tabDim = withParentOffset(new Dim2i(0, offsetY, width, height), (Point2i) (Object) tabSection);
+                    Dim2i tabDim = withParentOffset(new Dim2i(0, offsetY, width, height),
+                            (Point2i) (Object) tabSection);
 
                     FlatButtonWidget button = new FlatButtonWidget(tabDim, tab.title(), () -> {
                         SodiumOptionsTabFrame.this.setTab(tab);
@@ -200,9 +211,11 @@ public class SodiumOptionsTabFrame extends AbstractFrame {
             }
         }
 
-        int tabSectionY = 0;//(this.tabs.size() + this.tabs.keySet().size()) * 18 + (4 * this.tabs.keySet().size());
+        int tabSectionY = 0;// (this.tabs.size() + this.tabs.keySet().size()) * 18 + (4 *
+                            // this.tabs.keySet().size());
         for (var modEntry : tabs.asMap().entrySet()) {
-            if (!(modEntry.getKey().equals("sodium") || modEntry.getKey().equals("embeddium")) && (selectedHeader == null || !selectedHeader.equals(modEntry.getKey()))) {
+            if (!(modEntry.getKey().equals("sodium") || modEntry.getKey().equals("embeddium"))
+                    && (selectedHeader == null || !selectedHeader.equals(modEntry.getKey()))) {
                 tabSectionY += 22;
                 continue;
             }
@@ -211,12 +224,15 @@ public class SodiumOptionsTabFrame extends AbstractFrame {
                 continue;
 
             var size = modEntry.getValue().size();
-            if ((modEntry.getKey().equals("sodium") || modEntry.getKey().equals("embeddium")) && modEntry.getValue().stream().anyMatch(tab -> Objects.equals(tab.title().getString(), "Shader Packs...")))
+            if ((modEntry.getKey().equals("sodium") || modEntry.getKey().equals("embeddium")) && modEntry.getValue()
+                    .stream().anyMatch(tab -> Objects.equals(tab.title().getString(), "Shader Packs...")))
                 size -= 1;
 
             tabSectionY += 22 + size * 18;
         }
-        this.tabSectionInner = tabSectionY > this.dim.height() ? new Dim2i(this.tabSection.x(), this.tabSection.y(), this.tabSection.width(), tabSectionY) : this.tabSection;
+        this.tabSectionInner = tabSectionY > this.dim.height()
+                ? new Dim2i(this.tabSection.x(), this.tabSection.y(), this.tabSection.width(), tabSectionY)
+                : this.tabSection;
 
         this.sidebarFrame = ScrollableFrame.createBuilder()
                 .setDimension(this.tabSection)
@@ -235,7 +251,8 @@ public class SodiumOptionsTabFrame extends AbstractFrame {
         if (this.selectedTab == null)
             return;
 
-        me.flashyreese.mods.reeses_sodium_options.client.gui.frame.AbstractFrame frame = this.selectedTab.getFrameFunction().apply(this.frameSection);
+        me.flashyreese.mods.reeses_sodium_options.client.gui.frame.AbstractFrame frame = this.selectedTab
+                .getFrameFunction().apply(this.frameSection);
         if (frame != null) {
             this.selectedFrame = frame;
             frame.buildFrame();
@@ -250,7 +267,7 @@ public class SodiumOptionsTabFrame extends AbstractFrame {
                 widget.render(drawContext, mouseX, mouseY, delta);
             }
         }
-        if(this.selectedFrame != null) {
+        if (this.selectedFrame != null) {
             this.selectedFrame.render(drawContext, mouseX, mouseY, delta);
         }
     }
@@ -271,8 +288,8 @@ public class SodiumOptionsTabFrame extends AbstractFrame {
     }
 
     @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
-        return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
+    public boolean mouseScrolled(double mouseX, double mouseY, double amount) {
+        return super.mouseScrolled(mouseX, mouseY, amount);
     }
 
     public static class Builder {
@@ -316,7 +333,8 @@ public class SodiumOptionsTabFrame extends AbstractFrame {
         public SodiumOptionsTabFrame build() {
             Validate.notNull(this.dim, "Dimension must be specified");
 
-            return new SodiumOptionsTabFrame(this.dim, this.renderOutline, this.functions, this.onSetTab, this.tabSectionSelectedTab, this.tabSectionScrollBarOffset);
+            return new SodiumOptionsTabFrame(this.dim, this.renderOutline, this.functions, this.onSetTab,
+                    this.tabSectionSelectedTab, this.tabSectionScrollBarOffset);
         }
     }
 }
